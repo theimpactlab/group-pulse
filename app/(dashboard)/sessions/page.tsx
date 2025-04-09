@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { BarChart3, Plus, Loader2, Trash2 } from "lucide-react"
+import { BarChart3, Plus, Loader2, Trash2 } from 'lucide-react'
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -76,7 +76,7 @@ export default function SessionsPage() {
     try {
       setDeletingSessionId(id)
 
-      // Use the server-side API route for deletion
+      // Use the server-side API route for deletion which will also clean up images
       const response = await fetch(`/api/sessions/${id}`, {
         method: "DELETE",
       })
@@ -89,17 +89,12 @@ export default function SessionsPage() {
       // Update the sessions list by filtering out the deleted session
       setSessions(sessions.filter((session) => session.id !== id))
 
-      toast({
-        title: "Session deleted",
-        description: "The session has been successfully deleted.",
-      })
+      // Use a string for the toast description instead of an object
+      toast.success("Session deleted successfully")
     } catch (err: any) {
       console.error("Error deleting session:", err)
-      toast({
-        title: "Error",
-        description: err.message || "Failed to delete the session. Please try again.",
-        variant: "destructive",
-      })
+      // Make sure we're passing a string as the description
+      toast.error(err.message || "Failed to delete the session. Please try again.")
     } finally {
       setDeletingSessionId(null)
     }
@@ -256,4 +251,3 @@ export default function SessionsPage() {
     </div>
   )
 }
-

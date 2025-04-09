@@ -51,7 +51,7 @@ export function LandingNav() {
             <Link href="/login">Log in</Link>
           </Button>
           <Button asChild>
-            <Link href="/register">Sign up</Link>
+            <Link href="/#pricing">Sign up</Link>
           </Button>
         </div>
 
@@ -88,7 +88,7 @@ export function LandingNav() {
                   <Link href="/login">Log in</Link>
                 </Button>
                 <Button asChild>
-                  <Link href="/register">Sign up</Link>
+                  <Link href="/#pricing">Sign up</Link>
                 </Button>
               </div>
             </div>

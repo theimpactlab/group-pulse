@@ -4,8 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, ArrowLeft, Share2, Trash2 } from "lucide-react"
-import { MainNav } from "@/components/main-nav"
+import { Loader2, ArrowLeft, Share2, Trash2 } from 'lucide-react'
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
@@ -88,10 +87,15 @@ export default function SessionPage() {
     try {
       setIsDeleting(true)
 
-      // Since RLS is disabled, we can use the Supabase client directly
-      const { error } = await supabase.from("sessions").delete().eq("id", params.id)
+      // Use the API route for deletion which will also clean up images
+      const response = await fetch(`/api/sessions/${params.id}`, {
+        method: "DELETE",
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.message || "Failed to delete session")
+      }
 
       toast.success("Session deleted successfully")
 
@@ -99,7 +103,7 @@ export default function SessionPage() {
       router.push("/sessions")
     } catch (err: any) {
       console.error("Error deleting session:", err)
-      toast.error("Failed to delete the session. Please try again.")
+      toast.error(err.message || "Failed to delete the session. Please try again.")
     } finally {
       setIsDeleting(false)
     }
@@ -128,7 +132,6 @@ export default function SessionPage() {
   if (sessionData.status === "loading" || (isLoading && !error)) {
     return (
       <div className="flex min-h-screen flex-col">
-        <MainNav />
         <main className="flex-1 container py-6 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
@@ -140,7 +143,6 @@ export default function SessionPage() {
   if (sessionData.status === "unauthenticated") {
     return (
       <div className="flex min-h-screen flex-col">
-        <MainNav />
         <main className="flex-1 container py-6">
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <h2 className="text-xl font-semibold mb-2">Please log in to view this session</h2>
@@ -155,7 +157,6 @@ export default function SessionPage() {
   if (error) {
     return (
       <div className="flex min-h-screen flex-col">
-        <MainNav />
         <main className="flex-1 container py-6">
           <div className="bg-red-50 text-red-600 p-4 rounded-md">{error}</div>
           <Button className="mt-4" onClick={() => router.push("/sessions")}>
@@ -169,7 +170,6 @@ export default function SessionPage() {
   if (!sessionInfo) {
     return (
       <div className="flex min-h-screen flex-col">
-        <MainNav />
         <main className="flex-1 container py-6">
           <div className="bg-yellow-50 text-yellow-600 p-4 rounded-md">Session not found</div>
           <Button className="mt-4" onClick={() => router.push("/sessions")}>
@@ -182,7 +182,6 @@ export default function SessionPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNav />
       <main className="flex-1 container py-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="outline" size="icon" onClick={() => router.push("/sessions")}>
@@ -331,4 +330,3 @@ export default function SessionPage() {
     </div>
   )
 }
-

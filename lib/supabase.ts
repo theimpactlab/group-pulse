@@ -70,3 +70,17 @@ export async function saveResponse(responseData: any) {
   return data[0]
 }
 
+export async function deleteImage(url: string, bucket = "images") {
+  const storageUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+
+  if (!storageUrl) {
+    throw new Error("Missing Supabase storage URL")
+  }
+
+  const path = url.replace(`${storageUrl}/storage/v1/object/public/${bucket}/`, "")
+
+  const { error } = await supabase.storage.from(bucket).remove([path])
+  if (error) throw error
+
+  return true
+}

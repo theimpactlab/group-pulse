@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { ArrowRight } from "lucide-react"
 
 export function CTASection() {
   return (
@@ -11,8 +12,11 @@ export function CTASection() {
             Join thousands of presenters who have transformed their sessions with GroupPulse.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" asChild>
-              <Link href="/register">Start Your Free Trial</Link>
+            <Button size="lg" asChild>
+              <Link href="/#pricing">
+                Start Your Free Trial
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
             <Button
               size="lg"
@@ -28,4 +32,3 @@ export function CTASection() {
     </section>
   )
 }
-

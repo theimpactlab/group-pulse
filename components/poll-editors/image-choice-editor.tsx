@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label"
 import { Trash2, Plus } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
 import type { ImageChoicePoll } from "@/types/poll-types"
+import { ImageUpload } from "@/components/ui/image-upload"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface ImageChoiceEditorProps {
   poll: ImageChoicePoll
@@ -95,29 +97,43 @@ export function ImageChoiceEditor({ poll, onChange }: ImageChoiceEditorProps) {
               </div>
 
               <div className="space-y-3">
-                <div>
-                  <Label htmlFor={`imageUrl-${option.id}`}>Image URL</Label>
-                  <Input
-                    id={`imageUrl-${option.id}`}
-                    value={option.imageUrl}
-                    onChange={(e) => handleImageUrlChange(option.id, e.target.value)}
-                    placeholder="Enter image URL"
-                    className="mt-1"
-                  />
-                </div>
-
-                {option.imageUrl && (
-                  <div className="border rounded-md p-2 bg-muted/50">
-                    <img
-                      src={option.imageUrl || "/placeholder.svg"}
-                      alt={option.caption || `Option ${index + 1}`}
-                      className="max-h-32 mx-auto object-contain"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=100&width=200"
-                      }}
+                <Tabs defaultValue="upload" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="upload">Upload Image</TabsTrigger>
+                    <TabsTrigger value="url">Image URL</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="upload" className="mt-2">
+                    <ImageUpload
+                      onImageUploaded={(url) => handleImageUrlChange(option.id, url)}
+                      existingImageUrl={option.imageUrl}
                     />
-                  </div>
-                )}
+                  </TabsContent>
+                  <TabsContent value="url" className="mt-2">
+                    <div>
+                      <Label htmlFor={`imageUrl-${option.id}`}>Image URL</Label>
+                      <Input
+                        id={`imageUrl-${option.id}`}
+                        value={option.imageUrl}
+                        onChange={(e) => handleImageUrlChange(option.id, e.target.value)}
+                        placeholder="Enter image URL"
+                        className="mt-1"
+                      />
+                    </div>
+
+                    {option.imageUrl && (
+                      <div className="border rounded-md p-2 bg-muted/50 mt-2">
+                        <img
+                          src={option.imageUrl || "/placeholder.svg"}
+                          alt={option.caption || `Option ${index + 1}`}
+                          className="max-h-32 mx-auto object-contain"
+                          onError={(e) => {
+                            ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=100&width=200"
+                          }}
+                        />
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
 
                 <div>
                   <Label htmlFor={`caption-${option.id}`}>Caption (optional)</Label>
@@ -140,4 +156,3 @@ export function ImageChoiceEditor({ poll, onChange }: ImageChoiceEditorProps) {
     </div>
   )
 }
-

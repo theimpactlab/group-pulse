@@ -49,16 +49,8 @@ export default function ThankYouPage() {
       </div>
 
       {/* Main content */}
-      <main
-        className={`flex-1 container py-12 flex items-center justify-center transition-colors duration-300 ${
-          colorScheme === "dark" ? "bg-gray-900" : "bg-gray-50"
-        }`}
-      >
-        <Card
-          className={`w-full max-w-md shadow-lg text-center transition-colors duration-300 ${
-            colorScheme === "dark" ? "border-gray-700" : ""
-          }`}
-        >
+      <main className="flex-1 container py-12 flex items-center justify-center transition-colors duration-300 bg-gray-50">
+        <Card className="w-full max-w-md shadow-lg text-center transition-colors duration-300 border-gray-200">
           <CardHeader className="pb-2">
             <div className="mx-auto bg-green-100 text-green-600 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4">
               <CheckCircle2 className="h-8 w-8" />
@@ -104,4 +96,3 @@ export default function ThankYouPage() {
     </div>
   )
 }
-

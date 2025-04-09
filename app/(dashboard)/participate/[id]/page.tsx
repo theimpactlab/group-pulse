@@ -71,6 +71,8 @@ export default function ParticipateSessionPage() {
       ...textInputs,
       [pollId]: value,
     })
+    // Automatically update the response as the user types
+    handleResponse(pollId, value)
   }
 
   const handleTextSubmit = (pollId: string) => {
@@ -284,17 +286,10 @@ export default function ParticipateSessionPage() {
                 maxLength={poll.data.maxResponseLength || undefined}
                 disabled={isSubmitted}
               />
-              <Button
-                onClick={() => handleTextSubmit(poll.id)}
-                disabled={!textInputs[poll.id]?.trim() || isSubmitted}
-                className="w-full"
-              >
-                Submit
-              </Button>
+              {poll.data.maxResponseLength ? (
+                <p className="text-xs text-muted-foreground">Maximum {poll.data.maxResponseLength} characters</p>
+              ) : null}
             </div>
-            {poll.data.maxResponseLength ? (
-              <p className="text-xs text-muted-foreground">Maximum {poll.data.maxResponseLength} characters</p>
-            ) : null}
           </div>
         )
       case "scale":
@@ -504,22 +499,14 @@ export default function ParticipateSessionPage() {
       </div>
 
       {/* Main content */}
-      <main
-        className={`flex-1 container py-6 flex items-center justify-center transition-colors duration-300 ${
-          colorScheme === "dark" ? "bg-gray-900" : "bg-gray-50"
-        }`}
-      >
+      <main className="flex-1 container py-6 flex items-center justify-center transition-colors duration-300 bg-gray-50">
         {!hasContent ? (
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-2">Waiting for content</h2>
             <p className="text-muted-foreground">The presenter has not shared any content yet.</p>
           </div>
         ) : (
-          <Card
-            className={`w-full max-w-2xl shadow-lg transition-colors duration-300 ${
-              colorScheme === "dark" ? "border-gray-700" : ""
-            }`}
-          >
+          <Card className="w-full max-w-2xl shadow-lg transition-colors duration-300 border-gray-200">
             <CardContent className="p-6">{renderPollParticipation(currentSlide)}</CardContent>
             <CardFooter className="flex justify-between border-t p-4">
               <div className="text-sm text-muted-foreground">
@@ -546,4 +533,3 @@ export default function ParticipateSessionPage() {
     </div>
   )
 }
-

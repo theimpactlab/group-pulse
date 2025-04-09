@@ -24,21 +24,6 @@ export function LandingFooter() {
                   Features
                 </Link>
               </li>
-              <li>
-                <Link href="/#pricing" className="text-muted-foreground hover:text-foreground">
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link href="/templates" className="text-muted-foreground hover:text-foreground">
-                  Templates
-                </Link>
-              </li>
-              <li>
-                <Link href="/roadmap" className="text-muted-foreground hover:text-foreground">
-                  Roadmap
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -53,16 +38,6 @@ export function LandingFooter() {
               <li>
                 <Link href="/contact" className="text-muted-foreground hover:text-foreground">
                   Contact
-                </Link>
-              </li>
-              <li>
-                <Link href="/careers" className="text-muted-foreground hover:text-foreground">
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="text-muted-foreground hover:text-foreground">
-                  Blog
                 </Link>
               </li>
             </ul>
@@ -97,20 +72,6 @@ export function LandingFooter() {
 
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} GroupPulse. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <Link href="https://twitter.com" className="text-muted-foreground hover:text-foreground">
-              Twitter
-            </Link>
-            <Link href="https://linkedin.com" className="text-muted-foreground hover:text-foreground">
-              LinkedIn
-            </Link>
-            <Link href="https://facebook.com" className="text-muted-foreground hover:text-foreground">
-              Facebook
-            </Link>
-            <Link href="https://instagram.com" className="text-muted-foreground hover:text-foreground">
-              Instagram
-            </Link>
-          </div>
         </div>
       </div>
     </footer>

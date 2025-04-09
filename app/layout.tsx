@@ -10,7 +10,6 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "GroupPulse - Interactive Audience Engagement",
   description: "Create interactive polls, quizzes, and Q&As for your audience",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -22,7 +21,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <SessionProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
             {children}
           </ThemeProvider>
         </SessionProvider>
@@ -30,7 +29,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-
-import './globals.css'

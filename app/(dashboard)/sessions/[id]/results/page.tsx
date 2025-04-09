@@ -4,7 +4,6 @@ import { CardFooter } from "@/components/ui/card"
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { MainNav } from "@/components/main-nav"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -556,7 +555,6 @@ export default function ResultsPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col">
-        <MainNav />
         <main className="flex-1 container py-6 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
@@ -568,7 +566,6 @@ export default function ResultsPage() {
   if (error) {
     return (
       <div className="flex min-h-screen flex-col">
-        <MainNav />
         <main className="flex-1 container py-6">
           <div className="bg-red-50 text-red-600 p-4 rounded-md">{error}</div>
           <Button className="mt-4" onClick={() => router.push("/sessions")}>
@@ -581,7 +578,6 @@ export default function ResultsPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNav />
       <main className="flex-1 container py-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -728,4 +724,3 @@ export default function ResultsPage() {
     </div>
   )
 }
-

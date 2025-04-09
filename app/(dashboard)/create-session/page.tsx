@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { MainNav } from "@/components/main-nav"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -66,7 +65,6 @@ export default function CreateSessionPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNav />
       <main className="flex-1 container py-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="outline" size="icon" onClick={() => router.back()}>
@@ -123,4 +121,3 @@ export default function CreateSessionPage() {
     </div>
   )
 }
-

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2, BarChart3 } from "lucide-react"
 import { toast } from "sonner"
 
-export default function JoinSessionPage() {
+export default function PresentSessionPage() {
   const params = useParams()
   const [isLoading, setIsLoading] = useState(true)
   const [sessionData, setSessionData] = useState<any>(null)
@@ -124,4 +124,3 @@ export default function JoinSessionPage() {
     </div>
   )
 }
-

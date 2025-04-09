@@ -13,7 +13,7 @@ export function AboutSection() {
               We're on a mission to transform how people interact during presentations, meetings, and events.
             </p>
             <p className="mb-6">
-              GroupPulse was founded in 2023 by a team of presentation experts and software engineers who were
+              GroupPulse was founded in 2025 by a group of consultants working in the charity sector who were
               frustrated with the lack of engagement in traditional presentations and meetings.
             </p>
             <p className="mb-6">
@@ -30,8 +30,8 @@ export function AboutSection() {
           </div>
           <div className="relative h-[400px] rounded-lg overflow-hidden">
             <Image
-              src="/placeholder.svg?height=800&width=600"
-              alt="The GroupPulse team"
+              src="https://theimpactlab.co.uk/images/IMPACTLABLOGO2.png?height=800&width=600"
+              alt="theimpactlab"
               fill
               className="object-cover"
             />

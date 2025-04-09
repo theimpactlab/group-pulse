@@ -64,6 +64,24 @@ async function runMigrations() {
   }
 }
 
-// Run migrations
-runMigrations().catch(console.error)
+// Ensure storage bucket exists
+async function ensureStorageBucket() {
+  console.log("Ensuring storage bucket exists...")
 
+  try {
+    // This would typically use the Supabase Management API or CLI
+    // For now, we'll rely on the migration to create the bucket
+    console.log("Storage bucket setup will be handled by migrations.")
+  } catch (error) {
+    console.error("Error setting up storage bucket:", error)
+  }
+}
+
+// Run migrations and setup
+async function main() {
+  await runMigrations()
+  await ensureStorageBucket()
+}
+
+// Run the setup
+main().catch(console.error)

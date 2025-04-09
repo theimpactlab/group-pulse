@@ -5,28 +5,10 @@ import { LandingFooter } from "@/components/landing-footer"
 export default function AboutPage() {
   const teamMembers = [
     {
-      name: "Alex Thompson",
-      role: "CEO & Co-Founder",
-      bio: "Former presentation coach with 15+ years of experience helping executives communicate effectively.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-    {
-      name: "Priya Sharma",
-      role: "CTO & Co-Founder",
-      bio: "Software engineer with a background in real-time applications and a passion for interactive experiences.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-    {
-      name: "Marcus Chen",
-      role: "Head of Product",
-      bio: "UX specialist focused on creating intuitive and accessible digital experiences for diverse audiences.",
-      image: "/placeholder.svg?height=300&width=300",
-    },
-    {
-      name: "Sophia Rodriguez",
-      role: "Head of Customer Success",
-      bio: "Dedicated to helping customers get the most out of GroupPulse with training and support.",
-      image: "/placeholder.svg?height=300&width=300",
+      name: "Ryan Miemczyk",
+      role: "Co-Founder",
+      bio: "Research Psychologist with an interest in human decision making.",
+      image: "https://www.trustimpact.com/wp-content/uploads/2022/05/Ryan-Miemszyk.png",
     },
   ]
 
@@ -53,11 +35,11 @@ export default function AboutPage() {
               <div>
                 <h2 className="text-3xl font-bold mb-6">Our Story</h2>
                 <p className="mb-4">
-                  GroupPulse was born out of frustration. As presentation coaches and event organizers, our founders
+                  Group-Pulse was born out of frustration. As collaborators and organizers, we
                   experienced firsthand the challenge of keeping audiences engaged during presentations and meetings.
                 </p>
                 <p className="mb-4">
-                  In 2023, Alex Thompson and Priya Sharma joined forces to create a solution that would bridge the gap
+                  In 2023, we decided to create a solution that would bridge the gap
                   between presenters and their audiences, making every session more interactive, engaging, and valuable
                   for everyone involved.
                 </p>
@@ -68,7 +50,7 @@ export default function AboutPage() {
               </div>
               <div className="relative h-[400px] rounded-lg overflow-hidden">
                 <Image
-                  src="/placeholder.svg?height=800&width=600"
+                  src="https://theimpactlab.co.uk/images/IMPACTLABLOGO2.png?height=800&width=600"
                   alt="GroupPulse founders"
                   fill
                   className="object-cover"
@@ -112,7 +94,13 @@ export default function AboutPage() {
         <section className="py-16">
           <div className="container">
             <h2 className="text-3xl font-bold mb-12 text-center">Meet Our Team</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div
+              className={`${
+                teamMembers.length === 1
+                  ? "flex justify-center"
+                  : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+              }`}
+            >
               {teamMembers.map((member, index) => (
                 <div key={index} className="text-center">
                   <div className="relative h-64 w-64 mx-auto rounded-full overflow-hidden mb-4">
@@ -131,4 +119,3 @@ export default function AboutPage() {
     </div>
   )
 }
-
