@@ -40,7 +40,10 @@ export default function LoginPage() {
         return
       }
 
-      router.push(callbackUrl)
+      // Add a small delay before redirecting to ensure the session is properly set
+      setTimeout(() => {
+        router.push(callbackUrl)
+      }, 500)
     } catch (error) {
       setError("An unexpected error occurred")
       setIsLoading(false)
@@ -110,4 +113,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

@@ -55,12 +55,16 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
+        token.email = user.email
+        token.name = user.name
       }
       return token
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
+      if (session.user && token) {
         session.user.id = token.id as string
+        session.user.email = token.email as string
+        session.user.name = (token.name as string) || null
       }
       return session
     },
@@ -72,4 +76,3 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 }
-
