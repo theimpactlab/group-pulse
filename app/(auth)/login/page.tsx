@@ -23,14 +23,30 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [redirecting, setRedirecting] = useState(false)
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (status === "authenticated") {
-      console.log("User is authenticated, redirecting to:", callbackUrl)
-      router.push(callbackUrl)
+    if (status === "authenticated" && !redirecting) {
+      console.log("User is authenticated, session:", session)
+      console.log("Preparing to redirect to:", callbackUrl)
+
+      setRedirecting(true)
+
+      // Add a delay to ensure session is fully established
+      setTimeout(() => {
+        console.log("Executing redirect now...")
+        // Try using router.push first
+        try {
+          router.push(callbackUrl)
+        } catch (e) {
+          console.error("Router push failed:", e)
+          // Fallback to window.location
+          window.location.href = callbackUrl
+        }
+      }, 1000)
     }
-  }, [status, router, callbackUrl])
+  }, [status, router, callbackUrl, session, redirecting])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,8 +74,9 @@ export default function LoginPage() {
       if (result?.ok) {
         toast.success("Login successful! Redirecting...")
 
-        // Force a hard navigation to the dashboard
-        window.location.href = callbackUrl
+        // Let the useEffect handle the redirection
+        // This ensures the session is properly established first
+        setIsLoading(false)
       }
     } catch (error) {
       console.error("Unexpected login error:", error)
@@ -73,6 +90,16 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // If redirecting, show a loading state
+  if (redirecting) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 flex-col gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-center text-muted-foreground">Redirecting to dashboard...</p>
       </div>
     )
   }

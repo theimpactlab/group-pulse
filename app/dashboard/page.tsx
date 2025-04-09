@@ -20,15 +20,22 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
+    console.log("Dashboard page loaded, session status:", status)
+    console.log("Session data:", session)
+
     if (status === "unauthenticated") {
+      console.log("User is not authenticated, redirecting to login")
       router.push("/login")
     } else if (status === "authenticated") {
+      console.log("User is authenticated, fetching stats")
       fetchStats()
     }
-  }, [status, router])
+  }, [status, router, session])
 
   const fetchStats = async () => {
     try {
+      console.log("Fetching stats for user:", session?.user?.id)
+
       // Fetch sessions count
       const { data: sessions, error: sessionsError } = await supabase
         .from("sessions")
@@ -36,7 +43,12 @@ export default function DashboardPage() {
         .eq("user_id", session?.user?.id)
         .order("created_at", { ascending: false })
 
-      if (sessionsError) throw sessionsError
+      if (sessionsError) {
+        console.error("Error fetching sessions:", sessionsError)
+        throw sessionsError
+      }
+
+      console.log("Fetched sessions:", sessions?.length || 0)
 
       // Fetch responses count (as a proxy for participants)
       const { count: responsesCount, error: responsesError } = await supabase
@@ -44,7 +56,12 @@ export default function DashboardPage() {
         .select("id", { count: "exact" })
         .in("session_id", sessions?.map((s) => s.id) || [])
 
-      if (responsesError) throw responsesError
+      if (responsesError) {
+        console.error("Error fetching responses:", responsesError)
+        throw responsesError
+      }
+
+      console.log("Fetched responses count:", responsesCount)
 
       setStats({
         totalSessions: sessions?.length || 0,
@@ -58,7 +75,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (isLoading) {
+  if (status === "loading" || isLoading) {
     return (
       <div className="flex min-h-screen flex-col">
         <main className="flex-1 container py-6 flex items-center justify-center">
