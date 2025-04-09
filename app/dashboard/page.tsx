@@ -21,12 +21,13 @@ export default function DashboardPage() {
     console.log("Dashboard page loaded, session status:", status)
     console.log("Session data:", session)
 
-    if (status === "unauthenticated") {
-      console.log("User is not authenticated, redirecting to login")
-      window.location.href = "/login"
-    } else if (status === "authenticated") {
+    // Only fetch stats if authenticated
+    if (status === "authenticated" && session?.user?.id) {
       console.log("User is authenticated, fetching stats")
       fetchStats()
+    } else if (status !== "loading") {
+      // If not loading and not authenticated, we're done loading
+      setIsLoading(false)
     }
   }, [status, session])
 
@@ -73,6 +74,7 @@ export default function DashboardPage() {
     }
   }
 
+  // If still checking authentication status, show loading
   if (status === "loading" || isLoading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -83,15 +85,15 @@ export default function DashboardPage() {
     )
   }
 
-  // If we get here, we should have an authenticated session
-  if (!session?.user) {
+  // If not authenticated, show a message
+  if (status === "unauthenticated") {
     return (
       <div className="flex min-h-screen flex-col">
         <main className="flex-1 container py-6 flex items-center justify-center flex-col gap-4">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-2">Session Error</h1>
-            <p className="text-muted-foreground mb-4">There was a problem with your session.</p>
-            <Button onClick={() => (window.location.href = "/login")}>Return to Login</Button>
+            <h1 className="text-2xl font-bold mb-2">Authentication Required</h1>
+            <p className="text-muted-foreground mb-4">Please log in to access the dashboard.</p>
+            <Button onClick={() => (window.location.href = "/login")}>Go to Login</Button>
           </div>
         </main>
       </div>

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname
+  console.log("Middleware processing path:", path)
+
   // Public routes that should always be accessible
   const publicRoutes = [
     "/",
@@ -15,22 +18,20 @@ export async function middleware(request: NextRequest) {
     "/forgot-password",
     "/reset-password",
     "/favicon.ico",
+    "/join",
+    "/participate",
   ]
-
-  // Dashboard routes that require authentication
-  const dashboardRoutes = ["/dashboard", "/sessions", "/analytics", "/settings", "/create-session"]
-
-  const path = request.nextUrl.pathname
-  console.log("Middleware processing path:", path)
 
   // Check if the current path is a public route
   const isPublicRoute = publicRoutes.some((route) => path === route || path.startsWith(`${route}/`))
 
-  // Check if the current path is a dashboard route
-  const isDashboardRoute = dashboardRoutes.some((route) => path === route || path.startsWith(`${route}/`))
-
   // Skip middleware for public routes, static files, and API routes
-  if (isPublicRoute || path.startsWith("/_next") || path.startsWith("/api")) {
+  if (
+    isPublicRoute ||
+    path.startsWith("/_next") ||
+    path.startsWith("/api") ||
+    path.includes(".") // Skip files with extensions
+  ) {
     console.log("Skipping middleware for public route:", path)
     return NextResponse.next()
   }
@@ -39,13 +40,13 @@ export async function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get("next-auth.session-token")?.value
   console.log("Session token present:", !!sessionToken)
 
-  if (!sessionToken && isDashboardRoute) {
-    // If no session token and trying to access dashboard routes, redirect to login
+  // If no session token and trying to access protected routes, redirect to login
+  if (!sessionToken) {
     console.log("No session token, redirecting to login")
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  console.log("Proceeding with request")
+  console.log("Session token found, proceeding with request")
   return NextResponse.next()
 }
 

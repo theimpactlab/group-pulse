@@ -23,23 +23,29 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [redirecting, setRedirecting] = useState(false)
+  const [redirectAttempts, setRedirectAttempts] = useState(0)
+
+  // Prevent infinite redirect loops
+  const MAX_REDIRECT_ATTEMPTS = 3
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (status === "authenticated" && !redirecting) {
+    if (status === "authenticated" && !redirecting && redirectAttempts < MAX_REDIRECT_ATTEMPTS) {
       console.log("User is authenticated, session:", session)
       console.log("Preparing to redirect to:", callbackUrl)
+      console.log("Redirect attempt:", redirectAttempts + 1)
 
       setRedirecting(true)
+      setRedirectAttempts((prev) => prev + 1)
 
       // Add a delay to ensure session is fully established
       setTimeout(() => {
         console.log("Executing redirect now...")
-        // Use direct window location change instead of router
+        // Use direct window location change
         window.location.href = callbackUrl
       }, 1000)
     }
-  }, [status, callbackUrl, session, redirecting])
+  }, [status, callbackUrl, session, redirecting, redirectAttempts])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,9 +72,6 @@ export default function LoginPage() {
 
       if (result?.ok) {
         toast.success("Login successful! Redirecting...")
-
-        // Let the useEffect handle the redirection
-        // This ensures the session is properly established first
         setIsLoading(false)
       }
     } catch (error) {
