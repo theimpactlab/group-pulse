@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Loader2, BarChart3, Users, Calendar, Plus } from "lucide-react"
@@ -11,7 +10,6 @@ import { supabase } from "@/lib/supabase"
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState({
     totalSessions: 0,
@@ -25,12 +23,12 @@ export default function DashboardPage() {
 
     if (status === "unauthenticated") {
       console.log("User is not authenticated, redirecting to login")
-      router.push("/login")
+      window.location.href = "/login"
     } else if (status === "authenticated") {
       console.log("User is authenticated, fetching stats")
       fetchStats()
     }
-  }, [status, router, session])
+  }, [status, session])
 
   const fetchStats = async () => {
     try {
@@ -80,6 +78,21 @@ export default function DashboardPage() {
       <div className="flex min-h-screen flex-col">
         <main className="flex-1 container py-6 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+      </div>
+    )
+  }
+
+  // If we get here, we should have an authenticated session
+  if (!session?.user) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <main className="flex-1 container py-6 flex items-center justify-center flex-col gap-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-2">Session Error</h1>
+            <p className="text-muted-foreground mb-4">There was a problem with your session.</p>
+            <Button onClick={() => (window.location.href = "/login")}>Return to Login</Button>
+          </div>
         </main>
       </div>
     )

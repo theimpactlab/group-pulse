@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { signIn, useSession } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,7 +15,6 @@ import Link from "next/link"
 import { toast } from "sonner"
 
 export default function LoginPage() {
-  const router = useRouter()
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
@@ -36,17 +35,11 @@ export default function LoginPage() {
       // Add a delay to ensure session is fully established
       setTimeout(() => {
         console.log("Executing redirect now...")
-        // Try using router.push first
-        try {
-          router.push(callbackUrl)
-        } catch (e) {
-          console.error("Router push failed:", e)
-          // Fallback to window.location
-          window.location.href = callbackUrl
-        }
+        // Use direct window location change instead of router
+        window.location.href = callbackUrl
       }, 1000)
     }
-  }, [status, router, callbackUrl, session, redirecting])
+  }, [status, callbackUrl, session, redirecting])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,6 +93,9 @@ export default function LoginPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 flex-col gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-center text-muted-foreground">Redirecting to dashboard...</p>
+        <Button variant="outline" onClick={() => (window.location.href = callbackUrl)} className="mt-4">
+          Click here if not redirected automatically
+        </Button>
       </div>
     )
   }
