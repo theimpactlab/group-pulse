@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { useState, useEffect } from "react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,9 +12,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
   const [email, setEmail] = useState("")
@@ -22,32 +24,57 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === "authenticated") {
+      console.log("User is authenticated, redirecting to:", callbackUrl)
+      router.push(callbackUrl)
+    }
+  }, [status, router, callbackUrl])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
     try {
+      console.log("Attempting to sign in with:", email)
+
       const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
       })
 
+      console.log("Sign in result:", result)
+
       if (result?.error) {
+        console.error("Login error:", result.error)
         setError("Invalid email or password")
         setIsLoading(false)
         return
       }
 
-      // Add a small delay before redirecting to ensure the session is properly set
-      setTimeout(() => {
-        router.push(callbackUrl)
-      }, 500)
+      if (result?.ok) {
+        toast.success("Login successful! Redirecting...")
+
+        // Force a hard navigation to the dashboard
+        window.location.href = callbackUrl
+      }
     } catch (error) {
+      console.error("Unexpected login error:", error)
       setError("An unexpected error occurred")
       setIsLoading(false)
     }
+  }
+
+  // If still checking authentication status, show loading
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
