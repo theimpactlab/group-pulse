@@ -5,11 +5,12 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Plus, Users, Calendar, Copy, ArrowRight } from "lucide-react"
+import { Loader2, Plus, Users, Calendar, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
 import { format } from "date-fns"
+import { CopyLinkButton } from "@/components/copy-link-button"
 
 export default function SessionsPage() {
   const { data: session, status } = useSession()
@@ -19,7 +20,7 @@ export default function SessionsPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      window.location.href = "/login"
+      router.push("/login")
     } else if (status === "authenticated") {
       fetchSessions()
     }
@@ -44,14 +45,9 @@ export default function SessionsPage() {
     }
   }
 
-  const copyJoinLink = (id: string) => {
-    const baseUrl = window.location.origin
-    const joinUrl = `${baseUrl}/join/${id}`
-
-    navigator.clipboard
-      .writeText(joinUrl)
-      .then(() => toast.success("Join link copied to clipboard"))
-      .catch(() => toast.error("Failed to copy link"))
+  const getJoinUrl = (id: string) => {
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+    return `${baseUrl}/join/${id}`
   }
 
   if (isLoading) {
@@ -120,9 +116,7 @@ export default function SessionsPage() {
                   )}
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <Button variant="outline" size="sm" onClick={() => copyJoinLink(sessionItem.id)}>
-                    <Copy className="h-4 w-4 mr-2" /> Copy Link
-                  </Button>
+                  <CopyLinkButton url={getJoinUrl(sessionItem.id)} />
                   <Button asChild size="sm">
                     <Link href={`/sessions/${sessionItem.id}`}>
                       View <ArrowRight className="h-4 w-4 ml-2" />
