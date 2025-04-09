@@ -22,30 +22,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [redirecting, setRedirecting] = useState(false)
-  const [redirectAttempts, setRedirectAttempts] = useState(0)
+  const [loginSuccess, setLoginSuccess] = useState(false)
 
-  // Prevent infinite redirect loops
-  const MAX_REDIRECT_ATTEMPTS = 3
-
-  // Redirect if already authenticated
+  // Just display authentication status without redirecting
   useEffect(() => {
-    if (status === "authenticated" && !redirecting && redirectAttempts < MAX_REDIRECT_ATTEMPTS) {
-      console.log("User is authenticated, session:", session)
-      console.log("Preparing to redirect to:", callbackUrl)
-      console.log("Redirect attempt:", redirectAttempts + 1)
-
-      setRedirecting(true)
-      setRedirectAttempts((prev) => prev + 1)
-
-      // Add a delay to ensure session is fully established
-      setTimeout(() => {
-        console.log("Executing redirect now...")
-        // Use direct window location change
-        window.location.href = callbackUrl
-      }, 1000)
-    }
-  }, [status, callbackUrl, session, redirecting, redirectAttempts])
+    console.log("Login page loaded, session status:", status)
+    console.log("Session data:", session)
+  }, [status, session])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,7 +54,8 @@ export default function LoginPage() {
       }
 
       if (result?.ok) {
-        toast.success("Login successful! Redirecting...")
+        toast.success("Login successful!")
+        setLoginSuccess(true)
         setIsLoading(false)
       }
     } catch (error) {
@@ -90,19 +74,6 @@ export default function LoginPage() {
     )
   }
 
-  // If redirecting, show a loading state
-  if (redirecting) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 flex-col gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-center text-muted-foreground">Redirecting to dashboard...</p>
-        <Button variant="outline" onClick={() => (window.location.href = callbackUrl)} className="mt-4">
-          Click here if not redirected automatically
-        </Button>
-      </div>
-    )
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
@@ -116,43 +87,56 @@ export default function LoginPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+
+          {loginSuccess || status === "authenticated" ? (
+            <div className="text-center py-4">
+              <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+                <AlertDescription>You are successfully logged in!</AlertDescription>
+              </Alert>
+              <p className="mb-4">Click the button below to go to your dashboard.</p>
+              <Button onClick={() => (window.location.href = callbackUrl)} className="w-full">
+                Go to Dashboard
+              </Button>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </Link>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
-                </>
-              ) : (
-                "Sign in"
-              )}
-            </Button>
-          </form>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
+              </Button>
+            </form>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">
