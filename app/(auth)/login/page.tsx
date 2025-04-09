@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { signIn, useSession } from "next-auth/react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 
 export default function LoginPage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
@@ -22,13 +23,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [loginSuccess, setLoginSuccess] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
-  // Just display authentication status without redirecting
+  // Redirect if already authenticated
   useEffect(() => {
-    console.log("Login page loaded, session status:", status)
-    console.log("Session data:", session)
-  }, [status, session])
+    if (status === "authenticated" && !isRedirecting) {
+      setIsRedirecting(true)
+      toast.success("Login successful! Redirecting...")
+
+      // Use a timeout to ensure the toast is shown before redirecting
+      setTimeout(() => {
+        window.location.href = callbackUrl
+      }, 1000)
+    }
+  }, [status, callbackUrl, isRedirecting])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,28 +44,20 @@ export default function LoginPage() {
     setError("")
 
     try {
-      console.log("Attempting to sign in with:", email)
-
       const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
       })
 
-      console.log("Sign in result:", result)
-
       if (result?.error) {
-        console.error("Login error:", result.error)
         setError("Invalid email or password")
         setIsLoading(false)
         return
       }
 
-      if (result?.ok) {
-        toast.success("Login successful!")
-        setLoginSuccess(true)
-        setIsLoading(false)
-      }
+      // The useEffect above will handle the redirection
+      setIsLoading(false)
     } catch (error) {
       console.error("Unexpected login error:", error)
       setError("An unexpected error occurred")
@@ -70,6 +70,19 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // If redirecting, show a loading state
+  if (isRedirecting) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 flex-col gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-center text-muted-foreground">Redirecting to dashboard...</p>
+        <Button variant="outline" onClick={() => (window.location.href = callbackUrl)} className="mt-4">
+          Click here if not redirected automatically
+        </Button>
       </div>
     )
   }
@@ -87,56 +100,43 @@ export default function LoginPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-
-          {loginSuccess || status === "authenticated" ? (
-            <div className="text-center py-4">
-              <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
-                <AlertDescription>You are successfully logged in!</AlertDescription>
-              </Alert>
-              <p className="mb-4">Click the button below to go to your dashboard.</p>
-              <Button onClick={() => (window.location.href = callbackUrl)} className="w-full">
-                Go to Dashboard
-              </Button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                  Forgot password?
+                </Link>
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
-                  </>
-                ) : (
-                  "Sign in"
-                )}
-              </Button>
-            </form>
-          )}
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </Button>
+          </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">
