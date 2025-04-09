@@ -83,7 +83,7 @@ export default function EditSessionPage() {
       toast.success("Session saved successfully")
 
       // Redirect to the sessions list after saving
-      router.push("/sessions")
+      router.push(`/sessions/${params.id}`)
     } catch (err: any) {
       console.error("Error updating session:", err)
       toast.error("Failed to save changes. Please try again.")
