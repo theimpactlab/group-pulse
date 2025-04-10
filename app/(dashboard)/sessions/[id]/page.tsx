@@ -69,15 +69,21 @@ export default function SessionDetailPage() {
   const handleDeleteSession = async () => {
     setIsDeleting(true)
     try {
-      const { error } = await supabase.from("sessions").delete().eq("id", params.id)
+      // Use the API route instead of direct Supabase access
+      const response = await fetch(`/api/sessions/${params.id}`, {
+        method: "DELETE",
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.message || "Failed to delete session")
+      }
 
       toast.success("Session deleted successfully")
       router.push("/sessions")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting session:", error)
-      toast.error("Failed to delete session")
+      toast.error(error.message || "Failed to delete session")
     } finally {
       setIsDeleting(false)
     }

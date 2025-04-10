@@ -81,6 +81,8 @@ async function cleanupSessionImages(sessionContent: any[]): Promise<void> {
   }
 }
 
+// Add this DELETE method to the file to handle session deletion properly
+
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
     // Check authentication
@@ -96,10 +98,10 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
     }
 
-    // First verify that the session belongs to the current user and get its content
+    // First verify that the session belongs to the current user
     const { data: sessionData, error: fetchError } = await supabaseAdmin
       .from("sessions")
-      .select("user_id, content")
+      .select("user_id")
       .eq("id", id)
       .single()
 
@@ -117,10 +119,15 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: "Unauthorized" }, { status: 403 })
     }
 
-    // Clean up any images associated with this session
-    await cleanupSessionImages(sessionData.content || [])
+    // First delete all responses associated with this session
+    const { error: responsesDeleteError } = await supabaseAdmin.from("responses").delete().eq("session_id", id)
 
-    // Delete the session using admin privileges
+    if (responsesDeleteError) {
+      console.error("Error deleting responses:", responsesDeleteError)
+      return NextResponse.json({ message: responsesDeleteError.message }, { status: 500 })
+    }
+
+    // Then delete the session
     const { error: deleteError } = await supabaseAdmin.from("sessions").delete().eq("id", id)
 
     if (deleteError) {
@@ -128,7 +135,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: deleteError.message }, { status: 500 })
     }
 
-    // Return a simple success message as a string
     return NextResponse.json({ success: true, message: "Session deleted successfully" })
   } catch (error: any) {
     console.error("Unexpected error:", error)
