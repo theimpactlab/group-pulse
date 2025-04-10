@@ -1,11 +1,9 @@
-// Replace the entire content with a more intuitive settings hub
-
 "use client"
 
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { User, KeyRound, Bell, CreditCard, ArrowRight } from "lucide-react"
+import { User, KeyRound, Bell, CreditCard, ArrowRight, Palette } from "lucide-react"
 import Link from "next/link"
 
 export default function SettingsPage() {
@@ -41,6 +39,13 @@ export default function SettingsPage() {
       href: "/settings/subscription",
       color: "text-green-500",
     },
+    {
+      title: "Themes",
+      description: "Customize the look and feel of your sessions",
+      icon: Palette,
+      href: "/settings/themes",
+      color: "text-purple-500",
+    },
   ]
 
   return (
@@ -49,7 +54,7 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold">Settings</h1>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 max-w-4xl">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl">
         {settingsCategories.map((category) => (
           <Card
             key={category.title}
@@ -69,6 +74,12 @@ export default function SettingsPage() {
                 <div className="text-sm text-muted-foreground mb-4">
                   <p>• Change your password</p>
                   <p>• Manage account security</p>
+                </div>
+              )}
+              {category.title === "Themes" && (
+                <div className="text-sm text-muted-foreground mb-4">
+                  <p>• Create custom themes</p>
+                  <p>• Manage your theme library</p>
                 </div>
               )}
             </CardContent>

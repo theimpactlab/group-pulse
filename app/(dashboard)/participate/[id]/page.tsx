@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from "uuid"
 import type { PollType } from "@/types/poll-types"
 import { supabase } from "@/lib/supabase"
 import { useColorScheme } from "@/hooks/use-color-scheme"
+import { ThemeWrapper } from "./theme-wrapper"
 
 export default function ParticipateSessionPage() {
   const params = useParams()
@@ -532,47 +533,74 @@ export default function ParticipateSessionPage() {
   const isCurrentPollSubmitted = currentSlide ? submittedPolls.includes(currentSlide.id) : false
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Top bar */}
-      <div className="bg-primary text-primary-foreground p-4 transition-colors duration-300">
-        <div className="container flex justify-between items-center">
-          <div className="font-medium">{sessionData.title}</div>
-          <div className="text-sm">Joined as: {participantName}</div>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <main className="flex-1 container py-6 flex items-center justify-center transition-colors duration-300 bg-gray-50">
-        {!hasContent ? (
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-2">Waiting for content</h2>
-            <p className="text-muted-foreground">The presenter has not shared any content yet.</p>
+    <ThemeWrapper sessionId={params.id as string}>
+      <div className="flex min-h-screen flex-col">
+        {/* Top bar */}
+        <div
+          style={{
+            backgroundColor: "var(--theme-primary)",
+            color: "#ffffff",
+          }}
+          className="p-4 transition-colors duration-300"
+        >
+          <div className="container flex justify-between items-center">
+            <div className="font-medium" style={{ fontFamily: "var(--theme-font-heading)" }}>
+              {sessionData.title}
+            </div>
+            <div className="text-sm">Joined as: {participantName}</div>
           </div>
-        ) : (
-          <Card className="w-full max-w-2xl shadow-lg transition-colors duration-300 border-gray-200">
-            <CardContent className="p-6">{renderPollParticipation(currentSlide)}</CardContent>
-            <CardFooter className="flex justify-between border-t p-4">
-              <div className="text-sm text-muted-foreground">
-                Question {currentSlideIndex + 1} of {sessionData.content.length}
-              </div>
-              <Button
-                onClick={() => submitResponse(currentSlide.id)}
-                disabled={!responses[currentSlide.id] || isSubmitting || isCurrentPollSubmitted}
+        </div>
+
+        {/* Main content */}
+        <main className="flex-1 container py-6 flex items-center justify-center transition-colors duration-300">
+          {!hasContent ? (
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--theme-font-heading)" }}>
+                Waiting for content
+              </h2>
+              <p>The presenter has not shared any content yet.</p>
+            </div>
+          ) : (
+            <Card
+              className="w-full max-w-2xl shadow-lg transition-colors duration-300"
+              style={{
+                borderColor: "var(--theme-border)",
+                borderRadius: "var(--theme-radius)",
+              }}
+            >
+              <CardContent className="p-6">{renderPollParticipation(currentSlide)}</CardContent>
+              <CardFooter
+                className="flex justify-between p-4"
+                style={{
+                  borderTopColor: "var(--theme-border)",
+                  borderTopWidth: "1px",
+                }}
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
-                  </>
-                ) : isCurrentPollSubmitted ? (
-                  "Submitted"
-                ) : (
-                  "Submit Answer"
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-      </main>
-    </div>
+                <div className="text-sm text-muted-foreground">
+                  Question {currentSlideIndex + 1} of {sessionData.content.length}
+                </div>
+                <Button
+                  onClick={() => submitResponse(currentSlide.id)}
+                  disabled={!responses[currentSlide.id] || isSubmitting || isCurrentPollSubmitted}
+                  style={{
+                    backgroundColor: isCurrentPollSubmitted ? undefined : "var(--theme-primary)",
+                  }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                    </>
+                  ) : isCurrentPollSubmitted ? (
+                    "Submitted"
+                  ) : (
+                    "Submit Answer"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
+        </main>
+      </div>
+    </ThemeWrapper>
   )
 }

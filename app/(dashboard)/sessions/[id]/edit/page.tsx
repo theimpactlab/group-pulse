@@ -15,17 +15,21 @@ import { PollTypeSelector } from "@/components/poll-type-selector"
 import { PollEditor } from "@/components/poll-editor"
 import { createPollTemplate } from "@/components/create-poll-template"
 import type { PollType } from "@/types/poll-types"
+import { ThemeSelector } from "@/components/theme-selector"
+import { useTheme } from "@/contexts/theme-context"
 
 export default function EditSessionPage() {
   const router = useRouter()
   const params = useParams()
   const { data: session } = useSession()
+  const { themes } = useTheme()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [sessionData, setSessionData] = useState<any>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [content, setContent] = useState<PollType[]>([])
+  const [selectedThemeId, setSelectedThemeId] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -46,6 +50,7 @@ export default function EditSessionPage() {
         setTitle(data.title)
         setDescription(data.description || "")
         setContent(data.content || [])
+        setSelectedThemeId(data.theme_id || themes[0].id)
       } catch (err) {
         console.error("Error fetching session:", err)
         setError("Failed to load session. Please try again.")
@@ -57,7 +62,7 @@ export default function EditSessionPage() {
     if (session) {
       fetchSession()
     }
-  }, [session, params.id])
+  }, [session, params.id, themes])
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -75,6 +80,7 @@ export default function EditSessionPage() {
           title: title.trim(),
           description: description.trim() || null,
           content: content,
+          theme_id: selectedThemeId,
         })
         .eq("id", params.id)
 
@@ -178,6 +184,10 @@ export default function EditSessionPage() {
                     placeholder="Enter a description for your session"
                     rows={4}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="theme">Theme</Label>
+                  <ThemeSelector selectedThemeId={selectedThemeId} onSelect={(theme) => setSelectedThemeId(theme.id)} />
                 </div>
               </CardContent>
             </Card>

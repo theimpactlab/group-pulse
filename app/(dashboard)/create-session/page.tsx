@@ -14,28 +14,33 @@ import { toast } from "sonner"
 import { useSession } from "next-auth/react"
 import { v4 as uuidv4 } from "uuid"
 import { supabase } from "@/lib/supabase"
+import { ThemeSelector } from "@/components/theme-selector"
+import { useTheme } from "@/contexts/theme-context"
 
 export default function CreateSessionPage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const { currentTheme } = useTheme()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [selectedThemeId, setSelectedThemeId] = useState(currentTheme.id)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
     if (!session?.user?.id) {
       toast.error("You must be logged in to create a session")
+      setIsSubmitting(false)
       return
     }
 
     if (!title.trim()) {
       toast.error("Please provide a title for your session")
+      setIsSubmitting(false)
       return
     }
-
-    setIsSubmitting(true)
 
     try {
       const newSession = {
@@ -45,6 +50,7 @@ export default function CreateSessionPage() {
         user_id: session.user.id,
         status: "active", // Set to active by default
         content: [],
+        theme_id: selectedThemeId,
       }
 
       const { data, error } = await supabase.from("sessions").insert([newSession]).select()
@@ -99,6 +105,10 @@ export default function CreateSessionPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="theme">Theme</Label>
+                <ThemeSelector selectedThemeId={selectedThemeId} onSelect={(theme) => setSelectedThemeId(theme.id)} />
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
