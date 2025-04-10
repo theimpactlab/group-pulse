@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +24,12 @@ interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   const handleLogout = async () => {
     setIsLoading(true)
-    // Use direct navigation instead of redirect
     await signOut({ redirect: false })
-    window.location.href = "/login"
+    router.push("/login")
   }
 
   const initials = user?.name
@@ -56,11 +57,11 @@ export function UserMenu({ user }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => (window.location.href = "/settings/profile")}>
+        <DropdownMenuItem onClick={() => router.push("/settings/profile")}>
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => (window.location.href = "/settings")}>
+        <DropdownMenuItem onClick={() => router.push("/settings")}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>

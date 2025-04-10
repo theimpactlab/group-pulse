@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Copy, Check } from "lucide-react"
-import { toast } from "sonner"
+import { useToast } from "@/components/ui/use-toast"
 
 interface CopyLinkButtonProps {
   url: string
@@ -11,16 +11,24 @@ interface CopyLinkButtonProps {
 
 export function CopyLinkButton({ url }: CopyLinkButtonProps) {
   const [copied, setCopied] = useState(false)
+  const { toast } = useToast()
 
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
-      toast.success("Link copied to clipboard")
+      toast({
+        title: "Link copied",
+        description: "The join link has been copied to your clipboard.",
+      })
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
       console.error("Failed to copy:", error)
-      toast.error("Failed to copy the link. Please try again.")
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy the link. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 

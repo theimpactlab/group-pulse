@@ -8,7 +8,7 @@ import { TestimonialsSection } from "@/components/testimonials-section"
 import { ContactSection } from "@/components/contact-section"
 import { CTASection } from "@/components/cta-section"
 
-export default function HomePage() {
+export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <LandingNav />
@@ -25,3 +25,4 @@ export default function HomePage() {
     </div>
   )
 }
+

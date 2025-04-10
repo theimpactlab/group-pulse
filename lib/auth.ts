@@ -12,13 +12,10 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.error("Missing credentials")
           return null
         }
 
         try {
-          console.log("Authenticating with Supabase:", credentials.email)
-
           // Authenticate with Supabase
           const { data, error } = await supabase.auth.signInWithPassword({
             email: credentials.email,
@@ -26,16 +23,9 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (error) {
-            console.error("Supabase authentication error:", error)
-            throw new Error(error.message)
+            console.error("Authentication error:", error)
+            return null
           }
-
-          if (!data.user) {
-            console.error("No user returned from Supabase")
-            throw new Error("Authentication failed")
-          }
-
-          console.log("Authentication successful, user:", data.user.id)
 
           // Get user profile data from the database if needed
           const { data: userData, error: userError } = await supabase
@@ -44,10 +34,6 @@ export const authOptions: NextAuthOptions = {
             .eq("id", data.user.id)
             .single()
 
-          if (userError) {
-            console.log("Profile fetch error (non-critical):", userError)
-          }
-
           return {
             id: data.user.id,
             email: data.user.email,
@@ -55,7 +41,7 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error("Auth error:", error)
-          throw error // Re-throw to be caught by NextAuth
+          return null
         }
       },
     }),
@@ -68,19 +54,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        console.log("JWT callback - adding user data to token")
         token.id = user.id
-        token.email = user.email
-        token.name = user.name
       }
       return token
     },
     async session({ session, token }) {
-      if (session.user && token) {
-        console.log("Session callback - adding token data to session")
+      if (session.user && token.id) {
         session.user.id = token.id as string
-        session.user.email = token.email as string
-        session.user.name = (token.name as string) || null
       }
       return session
     },
@@ -92,3 +72,4 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 }
+

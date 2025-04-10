@@ -1,9 +1,11 @@
 "use client"
 
+import { CardFooter } from "@/components/ui/card"
+
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, ArrowLeft, Share2, BarChart3, PieChart, CloudRain, MessageSquare, RefreshCw } from "lucide-react"
 import { useSession } from "next-auth/react"
@@ -620,7 +622,7 @@ export default function ResultsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {sessionData.content.length > 0 && getUniqueParticipants() > 0
+                {sessionData.content.length > 0
                   ? `${Math.round((responses.length / (sessionData.content.length * getUniqueParticipants())) * 100)}%`
                   : "0%"}
               </div>
@@ -698,9 +700,20 @@ export default function ResultsPage() {
           {sessionData.content.map((poll: any) => (
             <TabsContent key={poll.id} value={poll.id}>
               <Card>
-                <CardHeader>
-                  <CardTitle>Results</CardTitle>
-                  <CardDescription>{getResponseCountForPoll(poll.id)} responses received</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Results</CardTitle>
+                    <CardDescription>{getResponseCountForPoll(poll.id)} responses received</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleResetPoll(poll.id)}
+                    className="gap-2"
+                    disabled={getResponseCountForPoll(poll.id) === 0}
+                  >
+                    <RefreshCw className="h-4 w-4" /> Reset Poll
+                  </Button>
                 </CardHeader>
                 <CardContent>{renderPollResults(poll)}</CardContent>
               </Card>
