@@ -39,11 +39,10 @@ export async function middleware(request: NextRequest) {
 
   // If no session token and trying to access protected routes, redirect to login
   if (!sessionToken) {
-    return NextResponse.redirect(new URL("/login", request.url))
+    const url = new URL("/login", request.url)
+    url.searchParams.set("callbackUrl", path)
+    return NextResponse.redirect(url)
   }
-
-  // No need to redirect from login to dashboard here - that should be handled client-side
-  // Removing this logic prevents the infinite redirect loop
 
   return NextResponse.next()
 }

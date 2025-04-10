@@ -23,20 +23,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [redirected, setRedirected] = useState(false)
 
-  // Redirect if already authenticated
+  // Log session status changes
   useEffect(() => {
-    // Only redirect once to prevent infinite loops
-    if (status === "authenticated" && !redirected) {
-      setRedirected(true)
-      router.push(callbackUrl)
+    console.log("Session status changed:", status)
+    console.log("Session data:", session)
+
+    if (status === "authenticated") {
+      console.log("User is authenticated, redirecting to:", callbackUrl)
+      // Use window.location for a hard redirect instead of router.push
+      window.location.href = callbackUrl
     }
-  }, [status, callbackUrl, router, redirected])
+  }, [status, session, callbackUrl])
 
-  // Add more detailed logging and improve error handling
-
-  // Update the handleSubmit function with better logging and error handling
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -64,15 +63,11 @@ export default function LoginPage() {
         return
       }
 
-      // Success - show toast and redirect
+      // Success - show toast
       toast.success("Login successful! Redirecting...")
 
-      // Set redirected to true to prevent double redirects
-      setRedirected(true)
-
-      // Use router.push for navigation
-      console.log("Redirecting to:", callbackUrl)
-      router.push(callbackUrl)
+      // Keep the loading state active until the redirect happens
+      // The useEffect will handle the redirect when session status changes
     } catch (error: any) {
       console.error("Unexpected login error:", error)
       setError(error.message || "An unexpected error occurred")
