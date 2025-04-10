@@ -517,6 +517,148 @@ export default function ResultsPage() {
     )
   }
 
+  const renderSliderResults = (poll: any, pollResponses: any[]) => {
+    // Calculate average position
+    const sum = pollResponses.reduce((acc, response) => acc + response.response, 0)
+    const average = sum / pollResponses.length
+
+    // Find the most common position
+    const positionCounts: Record<number, number> = {}
+    for (let i = 0; i < poll.data.steps; i++) {
+      positionCounts[i] = 0
+    }
+
+    pollResponses.forEach((response) => {
+      const position = response.response
+      positionCounts[position] = (positionCounts[position] || 0) + 1
+    })
+
+    let mostCommonPosition = 0
+    let maxCount = 0
+    Object.entries(positionCounts).forEach(([position, count]: any) => {
+      if (count > maxCount) {
+        maxCount = count
+        mostCommonPosition = Number(position)
+      }
+    })
+
+    // Sort responses by participant name for consistent display
+    const sortedResponses = [...pollResponses].sort((a, b) =>
+      (a.participant_name || "Anonymous").localeCompare(b.participant_name || "Anonymous"),
+    )
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-600 mb-1">Average Position</p>
+            <p className="text-2xl font-bold text-blue-700">{(average + 1).toFixed(1)}</p>
+            <p className="text-xs text-blue-600">of {poll.data.steps}</p>
+          </div>
+          <div className="p-4 bg-green-50 rounded-lg">
+            <p className="text-sm text-green-600 mb-1">Most Common</p>
+            <p className="text-2xl font-bold text-green-700">{mostCommonPosition + 1}</p>
+            <p className="text-xs text-green-600">{positionCounts[mostCommonPosition]} responses</p>
+          </div>
+          <div className="p-4 bg-purple-50 rounded-lg">
+            <p className="text-sm text-purple-600 mb-1">Total Responses</p>
+            <p className="text-2xl font-bold text-purple-700">{pollResponses.length}</p>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="flex justify-between mb-2">
+            <span className="font-medium text-sm">{poll.data.leftOption}</span>
+            <span className="font-medium text-sm">{poll.data.rightOption}</span>
+          </div>
+
+          <div className="relative h-12 bg-gray-100 rounded-lg">
+            {/* Position markers */}
+            {Array.from({ length: poll.data.steps }).map((_, index) => (
+              <div
+                key={index}
+                className="absolute bottom-0 w-0.5 h-2 bg-gray-400"
+                style={{ left: `${(index / (poll.data.steps - 1)) * 100}%` }}
+              />
+            ))}
+
+            {/* Response dots */}
+            {pollResponses.map((response, idx) => {
+              const position = response.response
+              const percentage = (position / (poll.data.steps - 1)) * 100
+
+              return (
+                <div
+                  key={idx}
+                  className="absolute w-4 h-4 rounded-full bg-primary transform -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${percentage}%`,
+                    top: "50%",
+                    opacity: 0.7,
+                  }}
+                  title={`${response.participant_name}: Position ${position + 1}`}
+                />
+              )
+            })}
+          </div>
+
+          {/* Individual participant responses */}
+          <div className="mt-6">
+            <h4 className="text-sm font-medium mb-4">Individual Responses</h4>
+            <div className="space-y-4 max-h-[400px] overflow-y-auto">
+              {sortedResponses.map((response, index) => {
+                const position = response.response
+                const percentage = (position / (poll.data.steps - 1)) * 100
+
+                return (
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium">{response.participant_name || "Anonymous"}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Position {position + 1} of {poll.data.steps}
+                      </span>
+                    </div>
+                    <div className="relative h-8 bg-gray-100 rounded-md">
+                      {/* Position markers */}
+                      {Array.from({ length: poll.data.steps }).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="absolute bottom-0 w-0.5 h-2 bg-gray-400"
+                          style={{ left: `${(idx / (poll.data.steps - 1)) * 100}%` }}
+                        />
+                      ))}
+
+                      {/* Participant's position */}
+                      <div
+                        className="absolute w-4 h-4 rounded-full bg-primary transform -translate-x-1/2 -translate-y-1/2"
+                        style={{
+                          left: `${percentage}%`,
+                          top: "50%",
+                        }}
+                      />
+
+                      {/* Labels */}
+                      <div className="absolute top-full mt-1 left-0 text-xs text-muted-foreground">
+                        {poll.data.leftOption}
+                      </div>
+                      <div className="absolute top-full mt-1 right-0 text-xs text-muted-foreground">
+                        {poll.data.rightOption}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground mt-4">Total responses: {pollResponses.length}</p>
+      </div>
+    )
+  }
+
   const handleShareResults = () => {
     // Generate a shareable link for results
     const shareableLink = `${window.location.origin}/sessions/${params.id}/results/public`
@@ -582,123 +724,6 @@ export default function ResultsPage() {
             Back to Sessions
           </Button>
         </main>
-      </div>
-    )
-  }
-
-  const renderSliderResults = (poll: any, pollResponses: any[]) => {
-    // Count responses for each position on the slider
-    const positionCounts: Record<number, number> = {}
-
-    // Initialize counts for all positions
-    for (let i = 0; i < poll.data.steps; i++) {
-      positionCounts[i] = 0
-    }
-
-    // Count responses
-    pollResponses.forEach((response) => {
-      const position = response.response
-      positionCounts[position] = (positionCounts[position] || 0) + 1
-    })
-
-    // Calculate average position
-    const sum = pollResponses.reduce((acc, response) => acc + response.response, 0)
-    const average = sum / pollResponses.length
-
-    // Find the most common position
-    let mostCommonPosition = 0
-    let maxCount = 0
-    Object.entries(positionCounts).forEach(([position, count]: any) => {
-      if (count > maxCount) {
-        maxCount = count
-        mostCommonPosition = Number(position)
-      }
-    })
-
-    return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
-
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-600 mb-1">Average Position</p>
-            <p className="text-2xl font-bold text-blue-700">{(average + 1).toFixed(1)}</p>
-            <p className="text-xs text-blue-600">of {poll.data.steps}</p>
-          </div>
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-green-600 mb-1">Most Common</p>
-            <p className="text-2xl font-bold text-green-700">{mostCommonPosition + 1}</p>
-            <p className="text-xs text-green-600">{positionCounts[mostCommonPosition]} responses</p>
-          </div>
-          <div className="p-4 bg-purple-50 rounded-lg">
-            <p className="text-sm text-purple-600 mb-1">Total Responses</p>
-            <p className="text-2xl font-bold text-purple-700">{pollResponses.length}</p>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <div className="flex justify-between mb-2">
-            <span className="font-medium text-sm">{poll.data.leftOption}</span>
-            <span className="font-medium text-sm">{poll.data.rightOption}</span>
-          </div>
-
-          <div className="relative h-12 bg-gray-100 rounded-lg">
-            {/* Position markers */}
-            {Array.from({ length: poll.data.steps }).map((_, index) => (
-              <div
-                key={index}
-                className="absolute bottom-0 w-0.5 h-2 bg-gray-400"
-                style={{ left: `${(index / (poll.data.steps - 1)) * 100}%` }}
-              />
-            ))}
-
-            {/* Response dots */}
-            {pollResponses.map((response, idx) => {
-              const position = response.response
-              const percentage = (position / (poll.data.steps - 1)) * 100
-
-              return (
-                <div
-                  key={idx}
-                  className="absolute w-4 h-4 rounded-full bg-primary transform -translate-x-1/2 -translate-y-1/2"
-                  style={{
-                    left: `${percentage}%`,
-                    top: "50%",
-                    opacity: 0.7,
-                  }}
-                  title={`${response.participant_name}: Position ${position + 1}`}
-                />
-              )
-            })}
-          </div>
-
-          {/* Distribution chart */}
-          <div className="mt-6">
-            <h4 className="text-sm font-medium mb-2">Response Distribution</h4>
-            <div className="space-y-2">
-              {Object.entries(positionCounts).map(([position, count]: any) => {
-                const percentage = pollResponses.length > 0 ? Math.round((count / pollResponses.length) * 100) : 0
-                const positionLabel = Number(position) + 1
-
-                return (
-                  <div key={position} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Position {positionLabel}</span>
-                      <span className="font-medium">
-                        {count} ({percentage}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div className="bg-primary h-2.5 rounded-full" style={{ width: `${percentage}%` }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        <p className="text-sm text-muted-foreground mt-4">Total responses: {pollResponses.length}</p>
       </div>
     )
   }

@@ -70,25 +70,21 @@ export default function PublicResultsPage() {
   }
 
   const renderSliderResults = (poll: any, pollResponses: any[]) => {
-    // Count responses for each position on the slider
-    const positionCounts: Record<number, number> = {}
-
-    // Initialize counts for all positions
-    for (let i = 0; i < poll.data.steps; i++) {
-      positionCounts[i] = 0
-    }
-
-    // Count responses
-    pollResponses.forEach((response) => {
-      const position = response.response
-      positionCounts[position] = (positionCounts[position] || 0) + 1
-    })
-
     // Calculate average position
     const sum = pollResponses.reduce((acc, response) => acc + response.response, 0)
     const average = sum / pollResponses.length
 
     // Find the most common position
+    const positionCounts: Record<number, number> = {}
+    for (let i = 0; i < poll.data.steps; i++) {
+      positionCounts[i] = 0
+    }
+
+    pollResponses.forEach((response) => {
+      const position = response.response
+      positionCounts[position] = (positionCounts[position] || 0) + 1
+    })
+
     let mostCommonPosition = 0
     let maxCount = 0
     Object.entries(positionCounts).forEach(([position, count]: any) => {
@@ -97,6 +93,11 @@ export default function PublicResultsPage() {
         mostCommonPosition = Number(position)
       }
     })
+
+    // Sort responses by participant name for consistent display
+    const sortedResponses = [...pollResponses].sort((a, b) =>
+      (a.participant_name || "Anonymous").localeCompare(b.participant_name || "Anonymous"),
+    )
 
     return (
       <div className="space-y-4">
@@ -155,24 +156,48 @@ export default function PublicResultsPage() {
             })}
           </div>
 
-          {/* Distribution chart */}
+          {/* Individual participant responses */}
           <div className="mt-6">
-            <h4 className="text-sm font-medium mb-2">Response Distribution</h4>
-            <div className="space-y-2">
-              {Object.entries(positionCounts).map(([position, count]: any) => {
-                const percentage = pollResponses.length > 0 ? Math.round((count / pollResponses.length) * 100) : 0
-                const positionLabel = Number(position) + 1
+            <h4 className="text-sm font-medium mb-4">Individual Responses</h4>
+            <div className="space-y-4 max-h-[400px] overflow-y-auto">
+              {sortedResponses.map((response, index) => {
+                const position = response.response
+                const percentage = (position / (poll.data.steps - 1)) * 100
 
                 return (
-                  <div key={position} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Position {positionLabel}</span>
-                      <span className="font-medium">
-                        {count} ({percentage}%)
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium">{response.participant_name || "Anonymous"}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Position {position + 1} of {poll.data.steps}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div className="bg-primary h-2.5 rounded-full" style={{ width: `${percentage}%` }} />
+                    <div className="relative h-8 bg-gray-100 rounded-md">
+                      {/* Position markers */}
+                      {Array.from({ length: poll.data.steps }).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="absolute bottom-0 w-0.5 h-2 bg-gray-400"
+                          style={{ left: `${(idx / (poll.data.steps - 1)) * 100}%` }}
+                        />
+                      ))}
+
+                      {/* Participant's position */}
+                      <div
+                        className="absolute w-4 h-4 rounded-full bg-primary transform -translate-x-1/2 -translate-y-1/2"
+                        style={{
+                          left: `${percentage}%`,
+                          top: "50%",
+                        }}
+                      />
+
+                      {/* Labels */}
+                      <div className="absolute top-full mt-1 left-0 text-xs text-muted-foreground">
+                        {poll.data.leftOption}
+                      </div>
+                      <div className="absolute top-full mt-1 right-0 text-xs text-muted-foreground">
+                        {poll.data.rightOption}
+                      </div>
                     </div>
                   </div>
                 )
