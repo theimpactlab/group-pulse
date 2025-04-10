@@ -41,7 +41,7 @@ export default function SettingsPage() {
     },
     {
       title: "Themes",
-      description: "Customize the look and feel of your sessions",
+      description: "Customize and manage your presentation themes",
       icon: Palette,
       href: "/settings/themes",
       color: "text-purple-500",
@@ -54,7 +54,7 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold">Settings</h1>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 max-w-4xl">
         {settingsCategories.map((category) => (
           <Card
             key={category.title}

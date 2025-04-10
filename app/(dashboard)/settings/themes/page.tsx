@@ -1,14 +1,23 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Palette } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Plus, Trash2, Pencil } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
-import type { Theme } from "@/types/theme-types"
-import { ThemeEditor } from "@/components/theme-editor"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,29 +28,26 @@ import {
 
 export default function ThemesPage() {
   const router = useRouter()
-  const { themes, isLoading } = useTheme()
-  const [isEditorOpen, setIsEditorOpen] = useState(false)
-  const [editingTheme, setEditingTheme] = useState<Theme | undefined>(undefined)
+  const { themes, deleteTheme, isLoading } = useTheme()
+  const [deletingThemeId, setDeletingThemeId] = useState<string | null>(null)
 
-  const handleEditTheme = (theme: Theme) => {
-    setEditingTheme(theme)
-    setIsEditorOpen(true)
-  }
-
-  const handleCreateTheme = () => {
-    setEditingTheme(undefined)
-    setIsEditorOpen(true)
-  }
-
-  const handleSaveTheme = () => {
-    setIsEditorOpen(false)
+  const handleDeleteTheme = async (themeId: string) => {
+    try {
+      setDeletingThemeId(themeId)
+      await deleteTheme(themeId)
+      toast.success("Theme deleted successfully")
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete theme")
+    } finally {
+      setDeletingThemeId(null)
+    }
   }
 
   return (
     <main className="flex-1 container py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Theme Settings</h1>
-        <Button onClick={handleCreateTheme}>
+        <h1 className="text-3xl font-bold">Themes</h1>
+        <Button onClick={() => router.push("/settings/themes/create")}>
           <Plus className="mr-2 h-4 w-4" /> Create Theme
         </Button>
       </div>
@@ -58,25 +64,21 @@ export default function ThemesPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {themes.map((theme) => (
-          <Card
-            key={theme.id}
-            className={`cursor-pointer hover:shadow-md transition-shadow ${theme.isDefault ? "border-dashed" : ""}`}
-            onClick={() => handleEditTheme(theme)}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg">{theme.name}</CardTitle>
-                <div
-                  className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
-                  style={{ backgroundColor: theme.colors.primary }}
-                ></div>
-              </div>
+          <Card key={theme.id} className="overflow-hidden">
+            <div className="h-2" style={{ backgroundColor: theme.colors.primary }} />
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>{theme.name}</span>
+                {theme.isDefault && (
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Default</span>
+                )}
+              </CardTitle>
               <CardDescription>{theme.description || "No description"}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-2">
                 {Object.entries(theme.colors)
                   .slice(0, 5)
                   .map(([key, color]) => (
@@ -85,29 +87,55 @@ export default function ThemesPage() {
                       className="w-6 h-6 rounded-full border"
                       style={{ backgroundColor: color }}
                       title={key}
-                    ></div>
+                    />
                   ))}
-              </div>
-              <div className="text-xs text-muted-foreground flex items-center">
-                <Palette className="h-3 w-3 mr-1" />
-                {theme.isDefault ? "Default theme" : "Custom theme"}
+                {Object.keys(theme.colors).length > 5 && (
+                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">
+                    +{Object.keys(theme.colors).length - 5}
+                  </div>
+                )}
               </div>
             </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/settings/themes/edit/${theme.id}`)}
+                disabled={theme.isDefault}
+              >
+                <Pencil className="h-4 w-4 mr-2" /> Edit
+              </Button>
+
+              {!theme.isDefault && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-red-500">
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the theme.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDeleteTheme(theme.id)}
+                        className="bg-red-500 hover:bg-red-600"
+                      >
+                        {deletingThemeId === theme.id ? "Deleting..." : "Delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </CardFooter>
           </Card>
         ))}
       </div>
-
-      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{editingTheme ? "Edit Theme" : "Create New Theme"}</DialogTitle>
-            <DialogDescription>
-              {editingTheme ? "Modify your existing theme" : "Create a new custom theme for your sessions"}
-            </DialogDescription>
-          </DialogHeader>
-          <ThemeEditor initialTheme={editingTheme} onSave={handleSaveTheme} onCancel={() => setIsEditorOpen(false)} />
-        </DialogContent>
-      </Dialog>
     </main>
   )
 }

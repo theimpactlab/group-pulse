@@ -20,29 +20,33 @@ import { useTheme } from "@/contexts/theme-context"
 export default function CreateSessionPage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { currentTheme } = useTheme()
+  const { themes } = useTheme()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [selectedThemeId, setSelectedThemeId] = useState(currentTheme.id)
+  const [selectedThemeId, setSelectedThemeId] = useState(themes[0]?.id || "default")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsSubmitting(true)
 
     if (!session?.user?.id) {
       toast.error("You must be logged in to create a session")
-      setIsSubmitting(false)
       return
     }
 
     if (!title.trim()) {
       toast.error("Please provide a title for your session")
-      setIsSubmitting(false)
       return
     }
 
+    setIsSubmitting(true)
+
     try {
+      // Check if the sessions table has a theme_id column
+      const { error: tableCheckError } = await supabase.from("sessions").select("theme_id").limit(1).maybeSingle()
+
+      const hasThemeIdColumn = !tableCheckError
+
       const newSession = {
         id: uuidv4(),
         title: title.trim(),
@@ -50,7 +54,12 @@ export default function CreateSessionPage() {
         user_id: session.user.id,
         status: "active", // Set to active by default
         content: [],
-        theme_id: selectedThemeId,
+      }
+
+      // Only add theme_id if the column exists
+      if (hasThemeIdColumn) {
+        // @ts-ignore
+        newSession.theme_id = selectedThemeId
       }
 
       const { data, error } = await supabase.from("sessions").insert([newSession]).select()

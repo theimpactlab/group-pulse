@@ -6,6 +6,7 @@ import { type Theme, defaultThemes } from "@/types/theme-types"
 import { supabase } from "@/lib/supabase"
 import { useSession } from "next-auth/react"
 import { v4 as uuidv4 } from "uuid"
+import { toast } from "sonner"
 
 interface ThemeContextType {
   themes: Theme[]
@@ -25,6 +26,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Always set default themes even if not logged in
+    setThemes(defaultThemes)
+    setCurrentTheme(defaultThemes[0])
+
     if (session?.user?.id) {
       fetchThemes()
     } else {
@@ -35,24 +40,50 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const fetchThemes = async () => {
     setIsLoading(true)
     try {
+      // Check if the themes table exists
+      const { error: tableCheckError } = await supabase.from("themes").select("id").limit(1).maybeSingle()
+
+      if (tableCheckError) {
+        console.error("Themes table may not exist:", tableCheckError)
+        // If table doesn't exist, just use default themes
+        setThemes(defaultThemes)
+        setIsLoading(false)
+        return
+      }
+
       // Fetch user's custom themes
       const { data: userThemes, error } = await supabase.from("themes").select("*").eq("user_id", session?.user?.id)
 
-      if (error) throw error
+      if (error) {
+        console.error("Error fetching themes:", error)
+        // If there's an error, just use default themes
+        setThemes(defaultThemes)
+        setIsLoading(false)
+        return
+      }
 
       // Combine default themes with user themes
       const allThemes = [
         ...defaultThemes,
         ...(userThemes?.map((theme) => ({
-          ...theme,
+          id: theme.id,
+          name: theme.name,
+          description: theme.description,
           colors: theme.colors as any,
           font: theme.font as any,
+          borderRadius: theme.border_radius,
+          isDefault: theme.is_default,
+          userId: theme.user_id,
+          createdAt: theme.created_at,
+          updatedAt: theme.updated_at,
         })) || []),
       ]
 
       setThemes(allThemes)
     } catch (error) {
       console.error("Error fetching themes:", error)
+      // If there's an error, just use default themes
+      setThemes(defaultThemes)
     } finally {
       setIsLoading(false)
     }
@@ -60,6 +91,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const saveTheme = async (theme: Theme): Promise<Theme> => {
     if (!session?.user?.id) {
+      toast.error("You must be logged in to save themes")
       throw new Error("User must be logged in to save themes")
     }
 
@@ -82,7 +114,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           font: themeToSave.font,
           border_radius: themeToSave.borderRadius,
           is_default: false,
-          user_id: themeToSave.userId,
+          user_id: session.user.id,
           created_at: themeToSave.createdAt,
           updated_at: themeToSave.updatedAt,
         })
@@ -101,12 +133,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTheme = async (themeId: string) => {
     if (!session?.user?.id) {
+      toast.error("You must be logged in to delete themes")
       throw new Error("User must be logged in to delete themes")
     }
 
     // Don't allow deleting default themes
     const isDefaultTheme = defaultThemes.some((theme) => theme.id === themeId)
     if (isDefaultTheme) {
+      toast.error("Cannot delete default themes")
       throw new Error("Cannot delete default themes")
     }
 
