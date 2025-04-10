@@ -40,6 +40,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const fetchThemes = async () => {
     setIsLoading(true)
     try {
+      console.log("Fetching themes for user:", session?.user?.id)
+
       // First check if the themes table exists by trying to select from it
       const { error: tableCheckError } = await supabase.from("themes").select("id").limit(1).maybeSingle()
 
@@ -63,6 +65,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false)
         return
       }
+
+      console.log("User themes fetched:", userThemes)
 
       // Map database themes to our Theme interface
       const dbThemes = (userThemes || []).map((theme) => ({
@@ -88,6 +92,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
       })
 
+      console.log("Combined themes:", combinedThemes)
       setThemes(combinedThemes)
     } catch (error) {
       console.error("Error fetching themes:", error)
@@ -112,6 +117,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     }
 
+    console.log("Saving theme:", themeToSave)
+
     try {
       const { data, error } = await supabase
         .from("themes")
@@ -130,7 +137,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         })
         .select()
 
-      if (error) throw error
+      if (error) {
+        console.error("Error saving theme to database:", error)
+        throw error
+      }
+
+      console.log("Theme saved successfully:", data)
 
       // Refresh themes list
       await fetchThemes()

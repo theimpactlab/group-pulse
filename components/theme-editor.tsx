@@ -64,14 +64,16 @@ export function ThemeEditor({ initialTheme, onSave, onCancel }: ThemeEditorProps
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      const savedTheme = await saveTheme(theme)
-      toast.success("Theme saved successfully")
+      // If onSave is provided, use it, otherwise use the context's saveTheme
       if (onSave) {
-        onSave(savedTheme)
+        onSave(theme)
+      } else {
+        const savedTheme = await saveTheme(theme)
+        toast.success("Theme saved successfully")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving theme:", error)
-      toast.error("Failed to save theme")
+      toast.error(error.message || "Failed to save theme")
     } finally {
       setIsSaving(false)
     }
@@ -87,9 +89,9 @@ export function ThemeEditor({ initialTheme, onSave, onCancel }: ThemeEditorProps
       if (onCancel) {
         onCancel()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting theme:", error)
-      toast.error("Failed to delete theme")
+      toast.error(error.message || "Failed to delete theme")
     } finally {
       setIsDeleting(false)
     }
