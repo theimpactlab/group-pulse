@@ -1,23 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Trash2, Pencil } from "lucide-react"
-import { useTheme } from "@/contexts/theme-context"
-import { toast } from "sonner"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { LockIcon, CrownIcon } from "lucide-react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -25,31 +11,15 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import Link from "next/link"
 
 export default function ThemesPage() {
   const router = useRouter()
-  const { themes, deleteTheme, isLoading } = useTheme()
-  const [deletingThemeId, setDeletingThemeId] = useState<string | null>(null)
-
-  const handleDeleteTheme = async (themeId: string) => {
-    try {
-      setDeletingThemeId(themeId)
-      await deleteTheme(themeId)
-      toast.success("Theme deleted successfully")
-    } catch (error: any) {
-      toast.error(error.message || "Failed to delete theme")
-    } finally {
-      setDeletingThemeId(null)
-    }
-  }
 
   return (
     <main className="flex-1 container py-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Themes</h1>
-        <Button onClick={() => router.push("/settings/themes/create")}>
-          <Plus className="mr-2 h-4 w-4" /> Create Theme
-        </Button>
       </div>
 
       <Breadcrumb className="mb-6">
@@ -64,78 +34,141 @@ export default function ThemesPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {themes.map((theme) => (
-          <Card key={theme.id} className="overflow-hidden">
-            <div className="h-2" style={{ backgroundColor: theme.colors.primary }} />
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>{theme.name}</span>
-                {theme.isDefault && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Default</span>
-                )}
-              </CardTitle>
-              <CardDescription>{theme.description || "No description"}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(theme.colors)
-                  .slice(0, 5)
-                  .map(([key, color]) => (
-                    <div
-                      key={key}
-                      className="w-6 h-6 rounded-full border"
-                      style={{ backgroundColor: color }}
-                      title={key}
-                    />
-                  ))}
-                {Object.keys(theme.colors).length > 5 && (
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs">
-                    +{Object.keys(theme.colors).length - 5}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Custom Themes</CardTitle>
+              <CardDescription>Create and manage custom themes for your presentations</CardDescription>
+            </div>
+            <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+              <CrownIcon className="h-4 w-4 mr-1" />
+              Enterprise Feature
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 opacity-50">
+              {/* Default theme card */}
+              <Card>
+                <div className="h-2 bg-blue-500" />
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    <span>Default</span>
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Active</span>
+                  </CardTitle>
+                  <CardDescription>The default GroupPulse theme</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="w-6 h-6 rounded-full border bg-blue-500" title="Primary" />
+                    <div className="w-6 h-6 rounded-full border bg-gray-200" title="Secondary" />
+                    <div className="w-6 h-6 rounded-full border bg-blue-100" title="Accent" />
+                    <div className="w-6 h-6 rounded-full border bg-white" title="Background" />
+                    <div className="w-6 h-6 rounded-full border bg-gray-900" title="Foreground" />
                   </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push(`/settings/themes/edit/${theme.id}`)}
-                disabled={theme.isDefault}
-              >
-                <Pencil className="h-4 w-4 mr-2" /> Edit
-              </Button>
+                </CardContent>
+              </Card>
 
-              {!theme.isDefault && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="text-red-500">
-                      <Trash2 className="h-4 w-4 mr-2" /> Delete
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the theme.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDeleteTheme(theme.id)}
-                        className="bg-red-500 hover:bg-red-600"
-                      >
-                        {deletingThemeId === theme.id ? "Deleting..." : "Delete"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+              {/* Dark theme card */}
+              <Card>
+                <div className="h-2 bg-indigo-500" />
+                <CardHeader>
+                  <CardTitle>Dark Mode</CardTitle>
+                  <CardDescription>A dark theme for low-light environments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="w-6 h-6 rounded-full border bg-indigo-500" title="Primary" />
+                    <div className="w-6 h-6 rounded-full border bg-gray-800" title="Secondary" />
+                    <div className="w-6 h-6 rounded-full border bg-indigo-900" title="Accent" />
+                    <div className="w-6 h-6 rounded-full border bg-gray-900" title="Background" />
+                    <div className="w-6 h-6 rounded-full border bg-gray-100" title="Foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Add theme card */}
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center h-full py-8">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                    <LockIcon className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <h3 className="font-medium text-gray-500 mb-2">Create Custom Theme</h3>
+                  <p className="text-sm text-gray-400 text-center mb-4">
+                    Create your own custom themes with the Enterprise plan
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Overlay with upgrade button */}
+            <div className="absolute inset-0 bg-gray-100/50 backdrop-blur-[1px] flex flex-col items-center justify-center">
+              <div className="bg-white p-6 rounded-lg shadow-lg text-center max-w-md">
+                <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <LockIcon className="h-8 w-8 text-amber-500" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Enterprise Feature</h3>
+                <p className="text-gray-600 mb-6">
+                  Custom themes are available exclusively with our Enterprise plan. Upgrade now to create and manage
+                  personalized themes for your presentations.
+                </p>
+                <Button asChild>
+                  <Link href="/settings/subscription">Upgrade to Enterprise</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Default Themes</CardTitle>
+          <CardDescription>These themes are available on all plans</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <div className="h-2 bg-blue-500" />
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span>Default</span>
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Active</span>
+                </CardTitle>
+                <CardDescription>The default GroupPulse theme</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  <div className="w-6 h-6 rounded-full border bg-blue-500" title="Primary" />
+                  <div className="w-6 h-6 rounded-full border bg-gray-200" title="Secondary" />
+                  <div className="w-6 h-6 rounded-full border bg-blue-100" title="Accent" />
+                  <div className="w-6 h-6 rounded-full border bg-white" title="Background" />
+                  <div className="w-6 h-6 rounded-full border bg-gray-900" title="Foreground" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <div className="h-2 bg-indigo-500" />
+              <CardHeader>
+                <CardTitle>Dark Mode</CardTitle>
+                <CardDescription>A dark theme for low-light environments</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  <div className="w-6 h-6 rounded-full border bg-indigo-500" title="Primary" />
+                  <div className="w-6 h-6 rounded-full border bg-gray-800" title="Secondary" />
+                  <div className="w-6 h-6 rounded-full border bg-indigo-900" title="Accent" />
+                  <div className="w-6 h-6 rounded-full border bg-gray-900" title="Background" />
+                  <div className="w-6 h-6 rounded-full border bg-gray-100" title="Foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
     </main>
   )
 }

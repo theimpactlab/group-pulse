@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { User, KeyRound, Bell, CreditCard, ArrowRight, Palette } from "lucide-react"
+import { User, KeyRound, Bell, CreditCard, ArrowRight, Palette, Crown } from "lucide-react"
 import Link from "next/link"
 
 export default function SettingsPage() {
@@ -45,6 +45,7 @@ export default function SettingsPage() {
       icon: Palette,
       href: "/settings/themes",
       color: "text-purple-500",
+      enterprise: true,
     },
   ]
 
@@ -64,8 +65,16 @@ export default function SettingsPage() {
               <div className={`p-2 rounded-full bg-gray-100 ${category.color}`}>
                 <category.icon className="h-5 w-5" />
               </div>
-              <div>
-                <CardTitle>{category.title}</CardTitle>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <CardTitle>{category.title}</CardTitle>
+                  {category.enterprise && (
+                    <div className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
+                      <Crown className="h-3 w-3 mr-1" />
+                      Enterprise
+                    </div>
+                  )}
+                </div>
                 <CardDescription>{category.description}</CardDescription>
               </div>
             </CardHeader>

@@ -15,24 +15,20 @@ import { PollTypeSelector } from "@/components/poll-type-selector"
 import { PollEditor } from "@/components/poll-editor"
 import { createPollTemplate } from "@/components/create-poll-template"
 import type { PollType } from "@/types/poll-types"
-import { ThemeSelector } from "@/components/theme-selector"
-import { useTheme } from "@/contexts/theme-context"
+import { LockedFeature } from "@/components/locked-feature"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function EditSessionPage() {
   const router = useRouter()
   const params = useParams()
   const { data: session } = useSession()
-  const { themes } = useTheme()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [sessionData, setSessionData] = useState<any>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [content, setContent] = useState<PollType[]>([])
-  const [selectedThemeId, setSelectedThemeId] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   useEffect(() => {
     async function fetchSession() {
@@ -52,7 +48,6 @@ export default function EditSessionPage() {
         setTitle(data.title)
         setDescription(data.description || "")
         setContent(data.content || [])
-        setSelectedThemeId(data.theme_id || themes[0]?.id || "default")
       } catch (err) {
         console.error("Error fetching session:", err)
         setError("Failed to load session. Please try again.")
@@ -64,7 +59,7 @@ export default function EditSessionPage() {
     if (session) {
       fetchSession()
     }
-  }, [session, params.id, themes])
+  }, [session, params.id])
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -74,17 +69,8 @@ export default function EditSessionPage() {
 
     setIsSaving(true)
     setError(null)
-    setDebugInfo(null)
 
     try {
-      // Create a debug object to help troubleshoot
-      const debug = {
-        sessionId: params.id,
-        userId: session?.user?.id,
-        selectedThemeId,
-        availableThemes: themes.map((t) => ({ id: t.id, name: t.name })),
-      }
-
       // Create the update object
       const updateData: any = {
         title: title.trim(),
@@ -92,28 +78,10 @@ export default function EditSessionPage() {
         content: content,
       }
 
-      // Only add theme_id if it's a valid UUID
-      if (
-        selectedThemeId &&
-        selectedThemeId !== "default" &&
-        selectedThemeId !== "dark" &&
-        selectedThemeId !== "corporate" &&
-        selectedThemeId !== "playful" &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedThemeId)
-      ) {
-        updateData.theme_id = selectedThemeId
-      } else {
-        // If using a default theme, set theme_id to null
-        updateData.theme_id = null
-      }
-
-      debug.updateData = updateData
-
       // Update the session
       const { error } = await supabase.from("sessions").update(updateData).eq("id", params.id)
 
       if (error) {
-        setDebugInfo(debug)
         throw error
       }
 
@@ -122,7 +90,6 @@ export default function EditSessionPage() {
     } catch (err: any) {
       console.error("Error updating session:", err)
       setError(`Failed to save changes: ${err.message || "Unknown error"}`)
-      setDebugInfo((prev) => ({ ...prev, error: err }))
       setIsSaving(false)
     }
   }
@@ -223,23 +190,14 @@ export default function EditSessionPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="theme">Theme</Label>
-                  <ThemeSelector selectedThemeId={selectedThemeId} onSelect={(theme) => setSelectedThemeId(theme.id)} />
-                  <p className="text-xs text-muted-foreground">
-                    {selectedThemeId &&
-                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedThemeId)
-                      ? "Using custom theme"
-                      : "Using default theme"}
+                  <LockedFeature
+                    featureName="Custom Themes"
+                    description="Create and apply custom themes to your sessions with the Enterprise plan."
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Using default theme. Upgrade to Enterprise for custom themes.
                   </p>
                 </div>
-
-                {debugInfo && (
-                  <div className="mt-4 p-4 bg-gray-100 rounded-md overflow-auto text-xs">
-                    <details>
-                      <summary className="cursor-pointer font-medium">Debug Information</summary>
-                      <pre className="mt-2">{JSON.stringify(debugInfo, null, 2)}</pre>
-                    </details>
-                  </div>
-                )}
               </CardContent>
             </Card>
 

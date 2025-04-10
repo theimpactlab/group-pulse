@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,32 +14,20 @@ import { toast } from "sonner"
 import { useSession } from "next-auth/react"
 import { v4 as uuidv4 } from "uuid"
 import { supabase } from "@/lib/supabase"
-import { ThemeSelector } from "@/components/theme-selector"
-import { useTheme } from "@/contexts/theme-context"
+import { LockedFeature } from "@/components/locked-feature"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function CreateSessionPage() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { themes } = useTheme()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [selectedThemeId, setSelectedThemeId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
-
-  // Set default theme when themes are loaded
-  useEffect(() => {
-    if (themes && themes.length > 0 && !selectedThemeId) {
-      setSelectedThemeId(themes[0].id)
-    }
-  }, [themes, selectedThemeId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setDebugInfo(null)
 
     if (!session?.user?.id) {
       setError("You must be logged in to create a session")
@@ -54,13 +42,6 @@ export default function CreateSessionPage() {
     setIsSubmitting(true)
 
     try {
-      // Create a debug object to help troubleshoot
-      const debug = {
-        userId: session.user.id,
-        selectedThemeId,
-        availableThemes: themes.map((t) => ({ id: t.id, name: t.name })),
-      }
-
       // Create the new session object
       const newSession: any = {
         id: uuidv4(),
@@ -69,30 +50,13 @@ export default function CreateSessionPage() {
         user_id: session.user.id,
         status: "draft", // Set to draft by default
         content: [],
+        // No theme_id - using default theme
       }
-
-      // Only add theme_id if it's a valid UUID
-      // Skip adding theme_id if it's one of the default themes with non-UUID IDs
-      if (
-        selectedThemeId &&
-        selectedThemeId !== "default" &&
-        selectedThemeId !== "dark" &&
-        selectedThemeId !== "corporate" &&
-        selectedThemeId !== "playful" &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedThemeId)
-      ) {
-        newSession.theme_id = selectedThemeId
-      }
-
-      debug.newSession = newSession
 
       // Insert the session
       const { data, error } = await supabase.from("sessions").insert([newSession]).select()
 
-      debug.insertResult = { data, error }
-
       if (error) {
-        setDebugInfo(debug)
         throw error
       }
 
@@ -101,7 +65,6 @@ export default function CreateSessionPage() {
     } catch (error: any) {
       console.error("Error creating session:", error)
       setError(`Failed to create session: ${error.message || "Unknown error"}`)
-      setDebugInfo((prev) => ({ ...prev, error }))
     } finally {
       setIsSubmitting(false)
     }
@@ -152,29 +115,14 @@ export default function CreateSessionPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="theme">Theme</Label>
-                <ThemeSelector
-                  selectedThemeId={selectedThemeId}
-                  onSelect={(theme) => {
-                    console.log("Selected theme:", theme)
-                    setSelectedThemeId(theme.id)
-                  }}
+                <LockedFeature
+                  featureName="Custom Themes"
+                  description="Create and apply custom themes to your sessions with the Enterprise plan."
                 />
-                <p className="text-xs text-muted-foreground">
-                  {selectedThemeId &&
-                  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedThemeId)
-                    ? "Using custom theme"
-                    : "Using default theme"}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Using default theme. Upgrade to Enterprise for custom themes.
                 </p>
               </div>
-
-              {debugInfo && (
-                <div className="mt-4 p-4 bg-gray-100 rounded-md overflow-auto text-xs">
-                  <details>
-                    <summary className="cursor-pointer font-medium">Debug Information</summary>
-                    <pre className="mt-2">{JSON.stringify(debugInfo, null, 2)}</pre>
-                  </details>
-                </div>
-              )}
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" type="button" onClick={() => router.push("/sessions")}>
