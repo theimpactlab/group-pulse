@@ -42,9 +42,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  if (sessionToken && path === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", request.url))
-  }
+  // No need to redirect from login to dashboard here - that should be handled client-side
+  // Removing this logic prevents the infinite redirect loop
 
   return NextResponse.next()
 }

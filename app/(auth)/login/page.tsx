@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { signIn, useSession } from "next-auth/react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 
 export default function LoginPage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
@@ -22,14 +23,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [redirected, setRedirected] = useState(false)
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (status === "authenticated") {
-      // Use direct window location for more reliable redirect
-      window.location.href = callbackUrl
+    // Only redirect once to prevent infinite loops
+    if (status === "authenticated" && !redirected) {
+      setRedirected(true)
+      router.push(callbackUrl)
     }
-  }, [status, callbackUrl])
+  }, [status, callbackUrl, router, redirected])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,10 +55,11 @@ export default function LoginPage() {
       // Success - show toast and let the useEffect handle the redirect
       toast.success("Login successful! Redirecting...")
 
-      // Force a redirect after a short delay if the useEffect doesn't trigger
-      setTimeout(() => {
-        window.location.href = callbackUrl
-      }, 1500)
+      // Set redirected to true to prevent double redirects
+      setRedirected(true)
+
+      // Use router.push instead of window.location for better navigation
+      router.push(callbackUrl)
     } catch (error) {
       console.error("Unexpected login error:", error)
       setError("An unexpected error occurred")
