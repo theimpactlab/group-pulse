@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog"
 import { QrCode, Download, Share2 } from "lucide-react"
 import { toast } from "sonner"
-import { QRCodeSVG } from "qrcode.react"
 
 interface QRCodeButtonProps {
   url: string
@@ -21,65 +20,37 @@ interface QRCodeButtonProps {
 
 export function QRCodeButton({ url, title }: QRCodeButtonProps) {
   const [open, setOpen] = useState(false)
-  const qrCodeRef = useRef<HTMLDivElement>(null)
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
   const [canShare, setCanShare] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     // Check if Web Share API is available
     setCanShare(!!navigator.share)
-  }, [])
+
+    // Generate QR code using a free API service
+    if (open) {
+      setIsLoading(true)
+      // Encode the URL for the API
+      const encodedUrl = encodeURIComponent(url)
+      // Use Google Charts API to generate QR code
+      const qrApiUrl = `https://chart.googleapis.com/chart?cht=qr&chl=${encodedUrl}&chs=300x300&choe=UTF-8&chld=L|2`
+      setQrCodeUrl(qrApiUrl)
+      setIsLoading(false)
+    }
+  }, [url, open])
 
   const downloadQRCode = () => {
     try {
-      // Create a canvas from the SVG
-      const svgElement = qrCodeRef.current?.querySelector("svg")
-      if (!svgElement) {
-        toast.error("Could not find QR code to download")
-        return
-      }
+      // Create a link element
+      const link = document.createElement("a")
+      link.href = qrCodeUrl
+      link.download = `${title.replace(/\s+/g, "-").toLowerCase()}-qr-code.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
 
-      const canvas = document.createElement("canvas")
-      const ctx = canvas.getContext("2d")
-      if (!ctx) {
-        toast.error("Could not create canvas context")
-        return
-      }
-
-      // Set canvas dimensions
-      canvas.width = 1000
-      canvas.height = 1000
-
-      // Create an image from the SVG
-      const img = new Image()
-      img.crossOrigin = "anonymous"
-      const svgData = new XMLSerializer().serializeToString(svgElement)
-      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" })
-      const svgUrl = URL.createObjectURL(svgBlob)
-
-      img.onload = () => {
-        // Fill with white background
-        ctx.fillStyle = "white"
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-        // Draw the image
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-
-        // Convert to data URL and download
-        const dataUrl = canvas.toDataURL("image/png")
-        const link = document.createElement("a")
-        link.href = dataUrl
-        link.download = `${title.replace(/\s+/g, "-").toLowerCase()}-qr-code.png`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-
-        // Clean up
-        URL.revokeObjectURL(svgUrl)
-
-        toast.success("QR code downloaded successfully")
-      }
-
-      img.src = svgUrl
+      toast.success("QR code downloaded successfully")
     } catch (error) {
       console.error("Error downloading QR code:", error)
       toast.error("Failed to download QR code")
@@ -93,83 +64,40 @@ export function QRCodeButton({ url, title }: QRCodeButtonProps) {
         return
       }
 
-      // Create a canvas from the SVG
-      const svgElement = qrCodeRef.current?.querySelector("svg")
-      if (!svgElement) {
-        toast.error("Could not find QR code to share")
-        return
-      }
+      // Fetch the QR code image
+      const response = await fetch(qrCodeUrl)
+      const blob = await response.blob()
 
-      const canvas = document.createElement("canvas")
-      const ctx = canvas.getContext("2d")
-      if (!ctx) {
-        toast.error("Could not create canvas context")
-        return
-      }
+      // Create file from blob
+      const file = new File([blob], `${title.replace(/\s+/g, "-").toLowerCase()}-qr-code.png`, {
+        type: "image/png",
+      })
 
-      // Set canvas dimensions
-      canvas.width = 1000
-      canvas.height = 1000
+      try {
+        // Share the file and URL
+        await navigator.share({
+          title: `Join ${title}`,
+          text: `Scan this QR code to join the session: ${title}`,
+          url: url,
+          files: [file],
+        })
+        toast.success("QR code shared successfully")
+      } catch (shareError) {
+        console.error("Error sharing:", shareError)
 
-      // Create an image from the SVG
-      const img = new Image()
-      img.crossOrigin = "anonymous"
-      const svgData = new XMLSerializer().serializeToString(svgElement)
-      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" })
-      const svgUrl = URL.createObjectURL(svgBlob)
-
-      img.onload = async () => {
-        // Fill with white background
-        ctx.fillStyle = "white"
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-        // Draw the image
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-
-        // Convert to blob
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            toast.error("Failed to create image for sharing")
-            return
-          }
-
-          // Create file from blob
-          const file = new File([blob], `${title.replace(/\s+/g, "-").toLowerCase()}-qr-code.png`, {
-            type: "image/png",
+        // Fallback to just sharing the URL if file sharing fails
+        try {
+          await navigator.share({
+            title: `Join ${title}`,
+            text: `Join the interactive session: ${title}`,
+            url: url,
           })
-
-          try {
-            // Share the file and URL
-            await navigator.share({
-              title: `Join ${title}`,
-              text: `Scan this QR code to join the session: ${title}`,
-              url: url,
-              files: [file],
-            })
-            toast.success("QR code shared successfully")
-          } catch (shareError) {
-            console.error("Error sharing:", shareError)
-
-            // Fallback to just sharing the URL if file sharing fails
-            try {
-              await navigator.share({
-                title: `Join ${title}`,
-                text: `Join the interactive session: ${title}`,
-                url: url,
-              })
-              toast.success("Link shared successfully")
-            } catch (fallbackError) {
-              console.error("Fallback sharing failed:", fallbackError)
-              toast.error("Failed to share QR code")
-            }
-          }
-
-          // Clean up
-          URL.revokeObjectURL(svgUrl)
-        }, "image/png")
+          toast.success("Link shared successfully")
+        } catch (fallbackError) {
+          console.error("Fallback sharing failed:", fallbackError)
+          toast.error("Failed to share QR code")
+        }
       }
-
-      img.src = svgUrl
     } catch (error) {
       console.error("Error sharing QR code:", error)
       toast.error("Failed to share QR code")
@@ -190,17 +118,29 @@ export function QRCodeButton({ url, title }: QRCodeButtonProps) {
           <DialogDescription>Scan this QR code with a mobile device to join the session.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center p-4">
-          <div className="bg-white p-4 rounded-lg" ref={qrCodeRef}>
-            <QRCodeSVG value={url} size={200} level="H" includeMargin={true} bgColor={"#ffffff"} fgColor={"#000000"} />
+          <div className="bg-white p-4 rounded-lg">
+            {isLoading ? (
+              <div className="w-[300px] h-[300px] flex items-center justify-center bg-gray-100">
+                <span>Loading QR code...</span>
+              </div>
+            ) : (
+              <img
+                src={qrCodeUrl || "/placeholder.svg"}
+                alt={`QR Code for ${url}`}
+                width={300}
+                height={300}
+                className="max-w-full h-auto"
+              />
+            )}
           </div>
           <p className="text-sm text-center mt-4 text-muted-foreground break-all">{url}</p>
           <div className="flex gap-2 mt-4">
-            <Button onClick={downloadQRCode} variant="outline" size="sm" className="gap-2">
+            <Button onClick={downloadQRCode} variant="outline" size="sm" className="gap-2" disabled={isLoading}>
               <Download className="h-4 w-4" />
               Download
             </Button>
             {canShare && (
-              <Button onClick={shareQRCode} variant="outline" size="sm" className="gap-2">
+              <Button onClick={shareQRCode} variant="outline" size="sm" className="gap-2" disabled={isLoading}>
                 <Share2 className="h-4 w-4" />
                 Share
               </Button>
