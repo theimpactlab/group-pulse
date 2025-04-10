@@ -13,6 +13,14 @@ import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { PasswordChangeForm } from "@/components/password-change-form"
+// Add the import for the breadcrumb component at the top of the file
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -122,6 +130,18 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Profile</h1>
       </div>
+
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/settings">Settings</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/settings/profile">Profile</BreadcrumbLink>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <div className="max-w-3xl">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
