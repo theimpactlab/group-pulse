@@ -33,10 +33,10 @@ export default function LoginPage() {
 
       // Use a timeout to ensure the toast is shown before redirecting
       setTimeout(() => {
-        window.location.href = callbackUrl
+        router.push(callbackUrl)
       }, 1000)
     }
-  }, [status, callbackUrl, isRedirecting])
+  }, [status, callbackUrl, isRedirecting, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,8 +56,8 @@ export default function LoginPage() {
         return
       }
 
-      // The useEffect above will handle the redirection
-      setIsLoading(false)
+      // Success - let the useEffect handle the redirect
+      toast.success("Login successful! Redirecting...")
     } catch (error) {
       console.error("Unexpected login error:", error)
       setError("An unexpected error occurred")

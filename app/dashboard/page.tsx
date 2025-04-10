@@ -21,13 +21,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      window.location.href = "/login"
+      router.push("/login")
     } else if (status === "authenticated" && session?.user?.id) {
       fetchStats()
     } else if (status !== "loading") {
       setIsLoading(false)
     }
-  }, [status, session])
+  }, [status, session, router])
 
   const fetchStats = async () => {
     try {

@@ -19,6 +19,7 @@ export async function middleware(request: NextRequest) {
     "/favicon.ico",
     "/join",
     "/participate",
+    "/api/auth", // Add this to prevent auth API routes from being redirected
   ]
 
   // Check if the current path is a public route
@@ -28,7 +29,7 @@ export async function middleware(request: NextRequest) {
   if (
     isPublicRoute ||
     path.startsWith("/_next") ||
-    path.startsWith("/api") ||
+    path.startsWith("/api/auth") || // Be more specific about auth API routes
     path.includes(".") // Skip files with extensions
   ) {
     return NextResponse.next()
@@ -37,8 +38,17 @@ export async function middleware(request: NextRequest) {
   // Get the session token from the cookies
   const sessionToken = request.cookies.get("next-auth.session-token")?.value
 
+  // If trying to access login page while authenticated, redirect to dashboard
+  if (sessionToken && path === "/login") {
+    return NextResponse.redirect(new URL("/dashboard", request.url))
+  }
+
   // If no session token and trying to access protected routes, redirect to login
   if (!sessionToken) {
+    // Prevent redirect loops by checking if we're already on the login page
+    if (path === "/login") {
+      return NextResponse.next()
+    }
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
