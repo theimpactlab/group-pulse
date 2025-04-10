@@ -60,18 +60,6 @@ export function MobileNav() {
               Sessions
             </Link>
             <Link
-              href="/analytics"
-              onClick={handleLinkClick}
-              className={cn(
-                "flex items-center px-3 py-2 text-base rounded-md transition-colors",
-                pathname === "/analytics"
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-              )}
-            >
-              Analytics
-            </Link>
-            <Link
               href="/settings/profile"
               onClick={handleLinkClick}
               className={cn(
