@@ -104,18 +104,17 @@ export function SliderEditor({ poll, onChange }: SliderEditorProps) {
       </div>
 
       <div className="p-4 bg-gray-50 rounded-lg mt-4">
-        <div className="flex justify-between mb-2 text-sm">
+        <div className="flex justify-between mb-4 text-sm">
           <span>{poll.data.leftOption}</span>
           <span>{poll.data.rightOption}</span>
         </div>
-        <div className="h-4 bg-gray-200 rounded-full relative">
-          {Array.from({ length: poll.data.steps }).map((_, index) => (
-            <div
-              key={index}
-              className="absolute w-1 h-4 bg-gray-400"
-              style={{ left: `${(index / (poll.data.steps - 1)) * 100}%` }}
-            />
-          ))}
+        <div className="h-2 bg-gray-200 rounded-full relative">
+          <div className="absolute h-2 bg-primary rounded-full" style={{ width: "50%" }} />
+        </div>
+        <div className="flex justify-between mt-4">
+          <span className="text-xs text-muted-foreground">0%</span>
+          <span className="text-xs text-muted-foreground">50%</span>
+          <span className="text-xs text-muted-foreground">100%</span>
         </div>
       </div>
     </div>

@@ -17,6 +17,7 @@ import {
   HelpCircle,
   BrainCircuit,
   ImageIcon,
+  SlidersHorizontal,
 } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
@@ -98,6 +99,14 @@ export default function DashboardPage() {
       icon: Scale,
       color: "text-amber-500",
       bgColor: "bg-amber-50",
+    },
+    {
+      id: "slider",
+      name: "Slider",
+      description: "Position responses on a spectrum between two options, ideal for measuring sentiment.",
+      icon: SlidersHorizontal,
+      color: "text-teal-500",
+      bgColor: "bg-teal-50",
     },
     {
       id: "ranking",

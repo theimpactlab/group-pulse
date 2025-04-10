@@ -337,8 +337,8 @@ export default function ParticipateSessionPage() {
         return (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <div className="p-6 bg-gray-100 rounded-md">
-              <div className="flex justify-between mb-4">
+            <div className="p-6 bg-gray-50 rounded-md">
+              <div className="flex justify-between mb-6">
                 <span className="text-sm font-medium">{poll.data.leftOption}</span>
                 <span className="text-sm font-medium">{poll.data.rightOption}</span>
               </div>
@@ -351,18 +351,16 @@ export default function ParticipateSessionPage() {
                 disabled={isSubmitted}
                 className="my-6"
               />
-              <div className="flex justify-between mt-2">
-                {Array.from({ length: poll.data.steps }).map((_, index) => (
-                  <div key={index} className="h-2 w-0.5 bg-gray-400" />
-                ))}
-              </div>
-              <div className="mt-6 text-center">
-                <p className="text-sm font-medium">
-                  Your selection:{" "}
-                  {sliderValues[poll.id] !== undefined ? sliderValues[poll.id] + 1 : Math.ceil(poll.data.steps / 2)}
-                  {" of "}
-                  {poll.data.steps}
-                </p>
+              <div className="mt-8 text-center">
+                <div className="inline-block px-4 py-2 bg-primary/10 rounded-full">
+                  <p className="text-sm font-medium text-primary">
+                    Your position:{" "}
+                    {sliderValues[poll.id] !== undefined
+                      ? Math.round((sliderValues[poll.id] / (poll.data.steps - 1)) * 100)
+                      : 50}
+                    %
+                  </p>
+                </div>
               </div>
             </div>
           </div>
