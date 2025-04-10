@@ -222,7 +222,7 @@ export default function SubscriptionPage() {
                 support team.
               </p>
               <Button variant="outline" className="w-full" asChild>
-                <a href="mailto:support@grouppulse.com">Contact Support</a>
+                <a href="mailto:ryan@theimpactlab.co.uk">Contact Support</a>
               </Button>
             </CardContent>
           </Card>
