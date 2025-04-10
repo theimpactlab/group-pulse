@@ -40,46 +40,58 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const fetchThemes = async () => {
     setIsLoading(true)
     try {
-      // Check if the themes table exists
+      // First check if the themes table exists by trying to select from it
       const { error: tableCheckError } = await supabase.from("themes").select("id").limit(1).maybeSingle()
 
       if (tableCheckError) {
-        console.error("Themes table may not exist:", tableCheckError)
-        // If table doesn't exist, just use default themes
+        console.error("Themes table may not exist or is not accessible:", tableCheckError)
+        // If table doesn't exist or is not accessible, just use default themes
         setThemes(defaultThemes)
         setIsLoading(false)
         return
+      }
+
+      // Fetch default themes first
+      const { data: defaultThemesData, error: defaultThemesError } = await supabase
+        .from("themes")
+        .select("*")
+        .eq("is_default", true)
+
+      if (defaultThemesError) {
+        console.error("Error fetching default themes:", defaultThemesError)
       }
 
       // Fetch user's custom themes
-      const { data: userThemes, error } = await supabase.from("themes").select("*").eq("user_id", session?.user?.id)
+      const { data: userThemes, error: userThemesError } = await supabase
+        .from("themes")
+        .select("*")
+        .eq("user_id", session?.user?.id)
 
-      if (error) {
-        console.error("Error fetching themes:", error)
-        // If there's an error, just use default themes
-        setThemes(defaultThemes)
-        setIsLoading(false)
-        return
+      if (userThemesError) {
+        console.error("Error fetching user themes:", userThemesError)
       }
 
       // Combine default themes with user themes
-      const allThemes = [
-        ...defaultThemes,
-        ...(userThemes?.map((theme) => ({
-          id: theme.id,
-          name: theme.name,
-          description: theme.description,
-          colors: theme.colors as any,
-          font: theme.font as any,
-          borderRadius: theme.border_radius,
-          isDefault: theme.is_default,
-          userId: theme.user_id,
-          createdAt: theme.created_at,
-          updatedAt: theme.updated_at,
-        })) || []),
-      ]
+      const dbThemes = [...(defaultThemesData || []), ...(userThemes || [])].map((theme) => ({
+        id: theme.id,
+        name: theme.name,
+        description: theme.description,
+        colors: theme.colors as any,
+        font: theme.font as any,
+        borderRadius: theme.border_radius || "0.5rem",
+        isDefault: theme.is_default,
+        userId: theme.user_id,
+        createdAt: theme.created_at,
+        updatedAt: theme.updated_at,
+      }))
 
-      setThemes(allThemes)
+      // If we have themes from the database, use them
+      if (dbThemes.length > 0) {
+        setThemes([...defaultThemes, ...dbThemes])
+      } else {
+        // Otherwise, just use the default themes
+        setThemes(defaultThemes)
+      }
     } catch (error) {
       console.error("Error fetching themes:", error)
       // If there's an error, just use default themes

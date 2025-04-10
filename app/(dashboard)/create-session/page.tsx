@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from "uuid"
 import { supabase } from "@/lib/supabase"
 import { ThemeSelector } from "@/components/theme-selector"
 import { useTheme } from "@/contexts/theme-context"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function CreateSessionPage() {
   const router = useRouter()
@@ -25,54 +26,77 @@ export default function CreateSessionPage() {
   const [description, setDescription] = useState("")
   const [selectedThemeId, setSelectedThemeId] = useState(themes[0]?.id || "default")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
+    setDebugInfo(null)
 
     if (!session?.user?.id) {
-      toast.error("You must be logged in to create a session")
+      setError("You must be logged in to create a session")
       return
     }
 
     if (!title.trim()) {
-      toast.error("Please provide a title for your session")
+      setError("Please provide a title for your session")
       return
     }
 
     setIsSubmitting(true)
 
     try {
+      // Create a debug object to help troubleshoot
+      const debug = {
+        userId: session.user.id,
+        selectedThemeId,
+        availableThemes: themes.map((t) => ({ id: t.id, name: t.name })),
+      }
+
       // Check if the sessions table has a theme_id column
-      const { error: tableCheckError } = await supabase.from("sessions").select("theme_id").limit(1).maybeSingle()
+      const { data: tableCheck, error: tableCheckError } = await supabase
+        .from("sessions")
+        .select("theme_id")
+        .limit(1)
+        .maybeSingle()
 
-      const hasThemeIdColumn = !tableCheckError
+      debug.tableCheck = { data: tableCheck, error: tableCheckError }
 
+      // Create the new session object
       const newSession = {
         id: uuidv4(),
         title: title.trim(),
         description: description.trim() || null,
         user_id: session.user.id,
-        status: "active", // Set to active by default
+        status: "draft", // Set to draft by default
         content: [],
       }
 
-      // Only add theme_id if the column exists
-      if (hasThemeIdColumn) {
+      // Only add theme_id if it's a valid value
+      if (selectedThemeId && selectedThemeId !== "undefined" && selectedThemeId !== "null") {
         // @ts-ignore
         newSession.theme_id = selectedThemeId
       }
 
+      debug.newSession = newSession
+
+      // Insert the session
       const { data, error } = await supabase.from("sessions").insert([newSession]).select()
 
-      if (error) throw error
+      debug.insertResult = { data, error }
+
+      if (error) {
+        setDebugInfo(debug)
+        throw error
+      }
 
       toast.success("Session created successfully")
-
-      // Redirect to the sessions list instead of the edit page
       router.push("/sessions")
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating session:", error)
-      toast.error("Failed to create session. Please try again.")
+      setError(`Failed to create session: ${error.message || "Unknown error"}`)
+      setDebugInfo((prev) => ({ ...prev, error }))
     } finally {
       setIsSubmitting(false)
     }
@@ -95,6 +119,12 @@ export default function CreateSessionPage() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="title">Session Title</Label>
                 <Input
@@ -117,8 +147,24 @@ export default function CreateSessionPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="theme">Theme</Label>
-                <ThemeSelector selectedThemeId={selectedThemeId} onSelect={(theme) => setSelectedThemeId(theme.id)} />
+                <ThemeSelector
+                  selectedThemeId={selectedThemeId}
+                  onSelect={(theme) => {
+                    console.log("Selected theme:", theme)
+                    setSelectedThemeId(theme.id)
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">Selected theme ID: {selectedThemeId}</p>
               </div>
+
+              {debugInfo && (
+                <div className="mt-4 p-4 bg-gray-100 rounded-md overflow-auto text-xs">
+                  <details>
+                    <summary className="cursor-pointer font-medium">Debug Information</summary>
+                    <pre className="mt-2">{JSON.stringify(debugInfo, null, 2)}</pre>
+                  </details>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" type="button" onClick={() => router.push("/sessions")}>

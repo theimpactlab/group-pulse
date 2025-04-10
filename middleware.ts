@@ -20,11 +20,16 @@ export async function middleware(request: NextRequest) {
     "/privacy",
     "/terms",
     "/trial-expired",
+    "/cookies",
+    "/gdpr",
+    "/favicon.ico",
+    "/robots.txt",
   ]
 
   // Check if the current path should be public
   const isPublicPath = publicPaths.some(
-    (publicPath) => path === publicPath || path.startsWith(`${publicPath}/`) || path.includes("."),
+    (publicPath) =>
+      path === publicPath || path.startsWith(`${publicPath}/`) || path.includes(".") || path.startsWith("/api/"),
   )
 
   // If it's a public path, allow access without checking authentication
