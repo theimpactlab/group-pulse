@@ -12,7 +12,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.log("Missing credentials")
+          console.error("Missing credentials")
           return null
         }
 
@@ -26,8 +26,13 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (error) {
-            console.error("Authentication error:", error)
-            return null
+            console.error("Supabase authentication error:", error)
+            throw new Error(error.message)
+          }
+
+          if (!data.user) {
+            console.error("No user returned from Supabase")
+            throw new Error("Authentication failed")
           }
 
           console.log("Authentication successful, user:", data.user.id)
@@ -50,7 +55,7 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error("Auth error:", error)
-          return null
+          throw error // Re-throw to be caught by NextAuth
         }
       },
     }),

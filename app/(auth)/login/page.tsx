@@ -34,35 +34,48 @@ export default function LoginPage() {
     }
   }, [status, callbackUrl, router, redirected])
 
+  // Add more detailed logging and improve error handling
+
+  // Update the handleSubmit function with better logging and error handling
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
     try {
+      console.log("Attempting to sign in with:", email)
+
       const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
       })
 
-      if (result?.error) {
-        setError("Invalid email or password")
+      console.log("Sign in result:", result)
+
+      if (!result) {
+        throw new Error("No result returned from signIn")
+      }
+
+      if (result.error) {
+        console.error("Sign in error:", result.error)
+        setError(result.error === "CredentialsSignin" ? "Invalid email or password" : result.error)
         setIsLoading(false)
         return
       }
 
-      // Success - show toast and let the useEffect handle the redirect
+      // Success - show toast and redirect
       toast.success("Login successful! Redirecting...")
 
       // Set redirected to true to prevent double redirects
       setRedirected(true)
 
-      // Use router.push instead of window.location for better navigation
+      // Use router.push for navigation
+      console.log("Redirecting to:", callbackUrl)
       router.push(callbackUrl)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Unexpected login error:", error)
-      setError("An unexpected error occurred")
+      setError(error.message || "An unexpected error occurred")
       setIsLoading(false)
     }
   }
