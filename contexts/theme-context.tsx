@@ -51,16 +51,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // Fetch default themes first
-      const { data: defaultThemesData, error: defaultThemesError } = await supabase
-        .from("themes")
-        .select("*")
-        .eq("is_default", true)
-
-      if (defaultThemesError) {
-        console.error("Error fetching default themes:", defaultThemesError)
-      }
-
       // Fetch user's custom themes
       const { data: userThemes, error: userThemesError } = await supabase
         .from("themes")
@@ -69,29 +59,36 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
       if (userThemesError) {
         console.error("Error fetching user themes:", userThemesError)
+        setThemes(defaultThemes)
+        setIsLoading(false)
+        return
       }
 
-      // Combine default themes with user themes
-      const dbThemes = [...(defaultThemesData || []), ...(userThemes || [])].map((theme) => ({
+      // Map database themes to our Theme interface
+      const dbThemes = (userThemes || []).map((theme) => ({
         id: theme.id,
         name: theme.name,
         description: theme.description,
         colors: theme.colors as any,
         font: theme.font as any,
         borderRadius: theme.border_radius || "0.5rem",
-        isDefault: theme.is_default,
+        isDefault: false,
         userId: theme.user_id,
         createdAt: theme.created_at,
         updatedAt: theme.updated_at,
       }))
 
-      // If we have themes from the database, use them
-      if (dbThemes.length > 0) {
-        setThemes([...defaultThemes, ...dbThemes])
-      } else {
-        // Otherwise, just use the default themes
-        setThemes(defaultThemes)
-      }
+      // Combine default themes with user themes, ensuring no duplicates
+      const combinedThemes = [...defaultThemes]
+
+      // Add user themes that don't conflict with default themes
+      dbThemes.forEach((theme) => {
+        if (!combinedThemes.some((t) => t.id === theme.id)) {
+          combinedThemes.push(theme)
+        }
+      })
+
+      setThemes(combinedThemes)
     } catch (error) {
       console.error("Error fetching themes:", error)
       // If there's an error, just use default themes
@@ -124,7 +121,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           description: themeToSave.description,
           colors: themeToSave.colors,
           font: themeToSave.font,
-          border_radius: themeToSave.borderRadius,
+          border_radius:
+            typeof themeToSave.borderRadius === "number" ? themeToSave.borderRadius : themeToSave.borderRadius,
           is_default: false,
           user_id: session.user.id,
           created_at: themeToSave.createdAt,

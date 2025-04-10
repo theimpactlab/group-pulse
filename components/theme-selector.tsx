@@ -21,9 +21,26 @@ export function ThemeSelector({ selectedThemeId, onSelect }: ThemeSelectorProps)
   const [availableThemes, setAvailableThemes] = useState(defaultThemes)
 
   useEffect(() => {
-    // Make sure we have themes to display
+    // Make sure we have themes to display and remove duplicates
     if (themes && themes.length > 0) {
-      setAvailableThemes(themes)
+      // Create a Map to deduplicate themes by ID
+      const uniqueThemes = new Map()
+
+      // First add default themes
+      defaultThemes.forEach((theme) => {
+        uniqueThemes.set(theme.id, theme)
+      })
+
+      // Then add custom themes, overriding defaults if IDs match
+      themes.forEach((theme) => {
+        // Skip themes that are already in the map with the same ID
+        if (!uniqueThemes.has(theme.id)) {
+          uniqueThemes.set(theme.id, theme)
+        }
+      })
+
+      // Convert map back to array
+      setAvailableThemes(Array.from(uniqueThemes.values()))
     } else {
       setAvailableThemes(defaultThemes)
     }
@@ -61,7 +78,6 @@ export function ThemeSelector({ selectedThemeId, onSelect }: ThemeSelectorProps)
                   key={theme.id}
                   value={theme.name}
                   onSelect={() => {
-                    console.log("Selecting theme:", theme.id)
                     onSelect(theme)
                     setOpen(false)
                   }}

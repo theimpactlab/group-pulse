@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,10 +24,17 @@ export default function CreateSessionPage() {
   const { themes } = useTheme()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [selectedThemeId, setSelectedThemeId] = useState(themes[0]?.id || "default")
+  const [selectedThemeId, setSelectedThemeId] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
+
+  // Set default theme when themes are loaded
+  useEffect(() => {
+    if (themes && themes.length > 0 && !selectedThemeId) {
+      setSelectedThemeId(themes[0].id)
+    }
+  }, [themes, selectedThemeId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
