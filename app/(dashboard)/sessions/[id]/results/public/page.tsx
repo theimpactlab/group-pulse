@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, BarChart3, PieChart, CloudRain, MessageSquare } from "lucide-react"
+import { Loader2, BarChart3, PieChart, CloudRain, MessageSquare, SlidersHorizontal } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 import type { PollType } from "@/types/poll-types"
 
@@ -69,6 +69,123 @@ export default function PublicResultsPage() {
     return responses.filter((r) => r.poll_id === pollId)
   }
 
+  const renderSliderResults = (poll: any, pollResponses: any[]) => {
+    // Count responses for each position on the slider
+    const positionCounts: Record<number, number> = {}
+
+    // Initialize counts for all positions
+    for (let i = 0; i < poll.data.steps; i++) {
+      positionCounts[i] = 0
+    }
+
+    // Count responses
+    pollResponses.forEach((response) => {
+      const position = response.response
+      positionCounts[position] = (positionCounts[position] || 0) + 1
+    })
+
+    // Calculate average position
+    const sum = pollResponses.reduce((acc, response) => acc + response.response, 0)
+    const average = sum / pollResponses.length
+
+    // Find the most common position
+    let mostCommonPosition = 0
+    let maxCount = 0
+    Object.entries(positionCounts).forEach(([position, count]: any) => {
+      if (count > maxCount) {
+        maxCount = count
+        mostCommonPosition = Number(position)
+      }
+    })
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-600 mb-1">Average Position</p>
+            <p className="text-2xl font-bold text-blue-700">{(average + 1).toFixed(1)}</p>
+            <p className="text-xs text-blue-600">of {poll.data.steps}</p>
+          </div>
+          <div className="p-4 bg-green-50 rounded-lg">
+            <p className="text-sm text-green-600 mb-1">Most Common</p>
+            <p className="text-2xl font-bold text-green-700">{mostCommonPosition + 1}</p>
+            <p className="text-xs text-green-600">{positionCounts[mostCommonPosition]} responses</p>
+          </div>
+          <div className="p-4 bg-purple-50 rounded-lg">
+            <p className="text-sm text-purple-600 mb-1">Total Responses</p>
+            <p className="text-2xl font-bold text-purple-700">{pollResponses.length}</p>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="flex justify-between mb-2">
+            <span className="font-medium text-sm">{poll.data.leftOption}</span>
+            <span className="font-medium text-sm">{poll.data.rightOption}</span>
+          </div>
+
+          <div className="relative h-12 bg-gray-100 rounded-lg">
+            {/* Position markers */}
+            {Array.from({ length: poll.data.steps }).map((_, index) => (
+              <div
+                key={index}
+                className="absolute bottom-0 w-0.5 h-2 bg-gray-400"
+                style={{ left: `${(index / (poll.data.steps - 1)) * 100}%` }}
+              />
+            ))}
+
+            {/* Response dots */}
+            {pollResponses.map((response, idx) => {
+              const position = response.response
+              const percentage = (position / (poll.data.steps - 1)) * 100
+
+              return (
+                <div
+                  key={idx}
+                  className="absolute w-4 h-4 rounded-full bg-primary transform -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${percentage}%`,
+                    top: "50%",
+                    opacity: 0.7,
+                  }}
+                  title={`${response.participant_name}: Position ${position + 1}`}
+                />
+              )
+            })}
+          </div>
+
+          {/* Distribution chart */}
+          <div className="mt-6">
+            <h4 className="text-sm font-medium mb-2">Response Distribution</h4>
+            <div className="space-y-2">
+              {Object.entries(positionCounts).map(([position, count]: any) => {
+                const percentage = pollResponses.length > 0 ? Math.round((count / pollResponses.length) * 100) : 0
+                const positionLabel = Number(position) + 1
+
+                return (
+                  <div key={position} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>Position {positionLabel}</span>
+                      <span className="font-medium">
+                        {count} ({percentage}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div className="bg-primary h-2.5 rounded-full" style={{ width: `${percentage}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground mt-4">Total responses: {pollResponses.length}</p>
+      </div>
+    )
+  }
+
   const renderPollResults = (poll: PollType) => {
     const pollResponses = getResponsesForPoll(poll.id)
 
@@ -89,6 +206,8 @@ export default function PublicResultsPage() {
         return renderOpenEndedResults(poll, pollResponses)
       case "scale":
         return renderScaleResults(poll, pollResponses)
+      case "slider":
+        return renderSliderResults(poll, pollResponses)
       case "ranking":
         return renderRankingResults(poll, pollResponses)
       case "qa":
@@ -539,7 +658,7 @@ export default function PublicResultsPage() {
             <BarChart3 className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold">GroupPulse Results</h1>
           </div>
-          <div className="text-sm text-muted-foreground">Session: {sessionData.title}</div>
+          <div className="text-sm text-muted-foreground">Session: {sessionData?.title}</div>
         </div>
       </header>
       <main className="flex-1 container py-6">
@@ -594,7 +713,7 @@ export default function PublicResultsPage() {
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            {sessionData.content.map((poll: any, index: number) => (
+            {sessionData?.content.map((poll: any, index: number) => (
               <TabsTrigger key={poll.id} value={poll.id}>
                 Question {index + 1}
               </TabsTrigger>
@@ -603,7 +722,7 @@ export default function PublicResultsPage() {
 
           <TabsContent value="overview">
             <div className="space-y-6">
-              {sessionData.content.map((poll: any, index: number) => (
+              {sessionData?.content.map((poll: any, index: number) => (
                 <Card key={poll.id}>
                   <CardHeader>
                     <CardTitle className="text-lg">Question {index + 1}</CardTitle>
@@ -612,6 +731,7 @@ export default function PublicResultsPage() {
                       {poll.type === "word-cloud" && `Word Cloud: ${poll.data.question}`}
                       {poll.type === "open-ended" && `Open-ended: ${poll.data.question}`}
                       {poll.type === "scale" && `Scale: ${poll.data.question}`}
+                      {poll.type === "slider" && `Slider: ${poll.data.question}`}
                       {poll.type === "ranking" && `Ranking: ${poll.data.question}`}
                       {poll.type === "qa" && `Q&A: ${poll.data.title}`}
                       {poll.type === "quiz" && `Quiz: ${poll.data.question}`}
@@ -625,6 +745,7 @@ export default function PublicResultsPage() {
                         {poll.type === "word-cloud" && <CloudRain className="h-5 w-5 text-purple-500" />}
                         {poll.type === "open-ended" && <MessageSquare className="h-5 w-5 text-green-500" />}
                         {poll.type === "scale" && <BarChart3 className="h-5 w-5 text-amber-500" />}
+                        {poll.type === "slider" && <SlidersHorizontal className="h-5 w-5 text-teal-500" />}
                         {poll.type === "ranking" && <BarChart3 className="h-5 w-5 text-red-500" />}
                         {poll.type === "qa" && <MessageSquare className="h-5 w-5 text-cyan-500" />}
                         {poll.type === "quiz" && <BarChart3 className="h-5 w-5 text-indigo-500" />}
@@ -663,4 +784,3 @@ export default function PublicResultsPage() {
     </div>
   )
 }
-

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Slider } from "@/components/ui/slider"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
@@ -25,6 +26,7 @@ export default function ParticipateSessionPage() {
   const [responses, setResponses] = useState<Record<string, any>>({})
   const [textInputs, setTextInputs] = useState<Record<string, string>>({})
   const [scaleValues, setScaleValues] = useState<Record<string, number>>({})
+  const [sliderValues, setSliderValues] = useState<Record<string, number>>({})
   const [rankingOrder, setRankingOrder] = useState<Record<string, string[]>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedPolls, setSubmittedPolls] = useState<string[]>([])
@@ -48,6 +50,7 @@ export default function ParticipateSessionPage() {
 
         const data = await response.json()
         setSessionData(data)
+        toast.success(`Session "${data.title}" found!`)
       } catch (err: any) {
         console.error("Error fetching session:", err)
         setError(err.message || "Failed to load session. Please check the session code and try again.")
@@ -92,6 +95,14 @@ export default function ParticipateSessionPage() {
       [pollId]: value,
     })
     handleResponse(pollId, value)
+  }
+
+  const handleSliderChange = (pollId: string, value: number[]) => {
+    setSliderValues({
+      ...sliderValues,
+      [pollId]: value[0],
+    })
+    handleResponse(pollId, value[0])
   }
 
   const handleRankingChange = (pollId: string, itemId: string, direction: "up" | "down") => {
@@ -318,6 +329,40 @@ export default function ParticipateSessionPage() {
                     </Button>
                   )
                 })}
+              </div>
+            </div>
+          </div>
+        )
+      case "slider":
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
+            <div className="p-6 bg-gray-100 rounded-md">
+              <div className="flex justify-between mb-4">
+                <span className="text-sm font-medium">{poll.data.leftOption}</span>
+                <span className="text-sm font-medium">{poll.data.rightOption}</span>
+              </div>
+              <Slider
+                value={[sliderValues[poll.id] || Math.floor(poll.data.steps / 2)]}
+                min={0}
+                max={poll.data.steps - 1}
+                step={1}
+                onValueChange={(value) => handleSliderChange(poll.id, value)}
+                disabled={isSubmitted}
+                className="my-6"
+              />
+              <div className="flex justify-between mt-2">
+                {Array.from({ length: poll.data.steps }).map((_, index) => (
+                  <div key={index} className="h-2 w-0.5 bg-gray-400" />
+                ))}
+              </div>
+              <div className="mt-6 text-center">
+                <p className="text-sm font-medium">
+                  Your selection:{" "}
+                  {sliderValues[poll.id] !== undefined ? sliderValues[poll.id] + 1 : Math.ceil(poll.data.steps / 2)}
+                  {" of "}
+                  {poll.data.steps}
+                </p>
               </div>
             </div>
           </div>

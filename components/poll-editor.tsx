@@ -4,6 +4,7 @@ import { MultipleChoiceEditor } from "./poll-editors/multiple-choice-editor"
 import { WordCloudEditor } from "./poll-editors/word-cloud-editor"
 import { OpenEndedEditor } from "./poll-editors/open-ended-editor"
 import { ScaleEditor } from "./poll-editors/scale-editor"
+import { SliderEditor } from "./poll-editors/slider-editor"
 import { RankingEditor } from "./poll-editors/ranking-editor"
 import { QAEditor } from "./poll-editors/qa-editor"
 import { QuizEditor } from "./poll-editors/quiz-editor"
@@ -29,6 +30,8 @@ export function PollEditor({ poll, onChange, onDelete }: PollEditorProps) {
         return <OpenEndedEditor poll={poll} onChange={onChange} />
       case "scale":
         return <ScaleEditor poll={poll} onChange={onChange} />
+      case "slider":
+        return <SliderEditor poll={poll} onChange={onChange} />
       case "ranking":
         return <RankingEditor poll={poll} onChange={onChange} />
       case "qa":
@@ -52,6 +55,8 @@ export function PollEditor({ poll, onChange, onDelete }: PollEditorProps) {
         return "Open-ended Question"
       case "scale":
         return "Scale"
+      case "slider":
+        return "Slider"
       case "ranking":
         return "Ranking"
       case "qa":
@@ -77,4 +82,3 @@ export function PollEditor({ poll, onChange, onDelete }: PollEditorProps) {
     </Card>
   )
 }
-

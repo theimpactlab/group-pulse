@@ -48,6 +48,17 @@ export interface ScalePoll extends InteractiveElement {
   }
 }
 
+// Slider Poll (preference between two options)
+export interface SliderPoll extends InteractiveElement {
+  type: "slider"
+  data: {
+    question: string
+    leftOption: string
+    rightOption: string
+    steps: number // Number of steps/positions on the slider
+  }
+}
+
 // Ranking Poll
 export interface RankingPoll extends InteractiveElement {
   type: "ranking"
@@ -105,6 +116,7 @@ export type PollType =
   | WordCloudPoll
   | OpenEndedPoll
   | ScalePoll
+  | SliderPoll
   | RankingPoll
   | QAPoll
   | QuizPoll
@@ -120,4 +132,3 @@ export interface PollResponse {
   timestamp: string
   response: any // Type depends on the poll type
 }
-

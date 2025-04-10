@@ -51,6 +51,17 @@ export function createPollTemplate(type: string): PollType {
           step: 1,
         },
       }
+    case "slider":
+      return {
+        id,
+        type: "slider",
+        data: {
+          question: "Where do you stand on this issue?",
+          leftOption: "Strongly Disagree",
+          rightOption: "Strongly Agree",
+          steps: 5,
+        },
+      }
     case "ranking":
       return {
         id,
@@ -113,4 +124,3 @@ export function createPollTemplate(type: string): PollType {
       throw new Error(`Unknown poll type: ${type}`)
   }
 }
-
