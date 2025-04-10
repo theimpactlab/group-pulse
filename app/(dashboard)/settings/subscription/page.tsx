@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, CheckCircle2, ExternalLink, CreditCard, Info } from "lucide-react"
+import { Loader2, CheckCircle2, CreditCard, Info } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import {
@@ -22,28 +22,74 @@ export default function SubscriptionPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRedirecting, setIsRedirecting] = useState(false)
 
-  // Since we don't store subscription data in Supabase, we'll use a simpler approach
-  // In a real implementation, you might want to check with PayPal's API for the actual status
-
+  // Load PayPal SDK and initialize the button
   useEffect(() => {
-    // Just check if the user is authenticated
     if (status === "authenticated") {
       setIsLoading(false)
+
+      // Only load the PayPal script if it hasn't been loaded already
+      if (!document.querySelector('script[src*="paypal.com/sdk/js"]')) {
+        const script = document.createElement("script")
+        script.src =
+          "https://www.paypal.com/sdk/js?client-id=AX_8QiXsmnhX9jBZoE-iwUiJo3ZG78HFTvfV7GVOhsVvMTleSF6-lbLgrsBQ9qbXqrsHizT1GghTC36f&vault=true&intent=subscription"
+        script.setAttribute("data-sdk-integration-source", "button-factory")
+        script.addEventListener("load", () => {
+          if (window.paypal) {
+            window.paypal
+              .Buttons({
+                style: {
+                  shape: "pill",
+                  color: "black",
+                  layout: "vertical",
+                  label: "subscribe",
+                },
+                createSubscription: (data: any, actions: any) =>
+                  actions.subscription.create({
+                    plan_id: "P-33031622G52172046M72EPJY",
+                  }),
+                onApprove: (data: any, actions: any) => {
+                  toast.success("Subscription successful!")
+                  // Redirect to dashboard or refresh the page
+                  setTimeout(() => {
+                    router.refresh()
+                  }, 1500)
+                },
+              })
+              .render("#paypal-button-container-subscription-page")
+          }
+        })
+        document.body.appendChild(script)
+      } else if (
+        window.paypal &&
+        document.getElementById("paypal-button-container-subscription-page")?.children.length === 0
+      ) {
+        // If script is already loaded but button isn't rendered yet
+        window.paypal
+          .Buttons({
+            style: {
+              shape: "pill",
+              color: "black",
+              layout: "vertical",
+              label: "subscribe",
+            },
+            createSubscription: (data: any, actions: any) =>
+              actions.subscription.create({
+                plan_id: "P-33031622G52172046M72EPJY",
+              }),
+            onApprove: (data: any, actions: any) => {
+              toast.success("Subscription successful!")
+              // Redirect to dashboard or refresh the page
+              setTimeout(() => {
+                router.refresh()
+              }, 1500)
+            },
+          })
+          .render("#paypal-button-container-subscription-page")
+      }
     } else if (status === "unauthenticated") {
       router.push("/login")
     }
   }, [status, router])
-
-  const handleSubscribe = () => {
-    setIsRedirecting(true)
-    toast.info("Redirecting to PayPal checkout...")
-
-    // Use the same PayPal subscription link as on the homepage
-    setTimeout(() => {
-      // This should be the exact same URL used on the homepage PayPal button
-      window.location.href = "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=YOUR_PAYPAL_PLAN_ID"
-    }, 1500)
-  }
 
   const handleManageSubscription = () => {
     setIsRedirecting(true)
@@ -130,6 +176,10 @@ export default function SubscriptionPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span>30 day free trial</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <span>Unlimited interactive sessions</span>
               </div>
               <div className="flex items-center gap-2">
@@ -138,7 +188,7 @@ export default function SubscriptionPage() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span>Up to 100 participants per session</span>
+                <span>Unlimited participants per session</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -155,21 +205,9 @@ export default function SubscriptionPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button
-                onClick={handleSubscribe}
-                className="w-full flex items-center justify-center gap-2"
-                disabled={isRedirecting}
-              >
-                {isRedirecting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Redirecting to PayPal...
-                  </>
-                ) : (
-                  <>
-                    <ExternalLink className="h-4 w-4" /> Subscribe via PayPal
-                  </>
-                )}
-              </Button>
+              <div className="w-full rounded-md bg-white p-4">
+                <div id="paypal-button-container-subscription-page" />
+              </div>
             </CardFooter>
           </Card>
 
@@ -184,7 +222,7 @@ export default function SubscriptionPage() {
                 support team.
               </p>
               <Button variant="outline" className="w-full" asChild>
-                <a href="ryan@theimpactlab.co.uk">Contact Support</a>
+                <a href="mailto:support@grouppulse.com">Contact Support</a>
               </Button>
             </CardContent>
           </Card>
