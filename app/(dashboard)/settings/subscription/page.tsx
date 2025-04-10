@@ -36,13 +36,12 @@ export default function SubscriptionPage() {
 
   const handleSubscribe = () => {
     setIsRedirecting(true)
-    // In a real implementation, this would redirect to PayPal checkout
-    // For now, we'll simulate with a timeout
     toast.info("Redirecting to PayPal checkout...")
 
+    // Use the same PayPal subscription link as on the homepage
     setTimeout(() => {
-      // This URL would be your actual PayPal checkout URL
-      window.location.href = "https://www.paypal.com/subscriptions/checkout"
+      // This should be the exact same URL used on the homepage PayPal button
+      window.location.href = "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=YOUR_PAYPAL_PLAN_ID"
     }, 1500)
   }
 
@@ -151,7 +150,7 @@ export default function SubscriptionPage() {
               </div>
 
               <div className="pt-4">
-                <p className="font-medium">£4.95 per month</p>
+                <p className="font-medium">£3.50 per month</p>
                 <p className="text-sm text-muted-foreground">Cancel anytime through PayPal</p>
               </div>
             </CardContent>
@@ -185,7 +184,7 @@ export default function SubscriptionPage() {
                 support team.
               </p>
               <Button variant="outline" className="w-full" asChild>
-                <a href="mailto:ryan@theimpactlab.co.uk">Contact Support</a>
+                <a href="ryan@theimpactlab.co.uk">Contact Support</a>
               </Button>
             </CardContent>
           </Card>
