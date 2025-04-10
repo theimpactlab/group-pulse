@@ -54,17 +54,8 @@ export default function CreateSessionPage() {
         availableThemes: themes.map((t) => ({ id: t.id, name: t.name })),
       }
 
-      // Check if the sessions table has a theme_id column
-      const { data: tableCheck, error: tableCheckError } = await supabase
-        .from("sessions")
-        .select("theme_id")
-        .limit(1)
-        .maybeSingle()
-
-      debug.tableCheck = { data: tableCheck, error: tableCheckError }
-
       // Create the new session object
-      const newSession = {
+      const newSession: any = {
         id: uuidv4(),
         title: title.trim(),
         description: description.trim() || null,
@@ -73,9 +64,16 @@ export default function CreateSessionPage() {
         content: [],
       }
 
-      // Only add theme_id if it's a valid value
-      if (selectedThemeId && selectedThemeId !== "undefined" && selectedThemeId !== "null") {
-        // @ts-ignore
+      // Only add theme_id if it's a valid UUID
+      // Skip adding theme_id if it's one of the default themes with non-UUID IDs
+      if (
+        selectedThemeId &&
+        selectedThemeId !== "default" &&
+        selectedThemeId !== "dark" &&
+        selectedThemeId !== "corporate" &&
+        selectedThemeId !== "playful" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedThemeId)
+      ) {
         newSession.theme_id = selectedThemeId
       }
 
@@ -154,7 +152,12 @@ export default function CreateSessionPage() {
                     setSelectedThemeId(theme.id)
                   }}
                 />
-                <p className="text-xs text-muted-foreground">Selected theme ID: {selectedThemeId}</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedThemeId &&
+                  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedThemeId)
+                    ? "Using custom theme"
+                    : "Using default theme"}
+                </p>
               </div>
 
               {debugInfo && (

@@ -7,13 +7,13 @@ export interface ThemeColors {
   muted: string
   mutedForeground: string
   border: string
-  input: string
-  ring: string
-  success: string
-  warning: string
-  error: string
-  card: string
-  cardForeground: string
+  input?: string
+  ring?: string
+  success?: string
+  warning?: string
+  error?: string
+  card?: string
+  cardForeground?: string
 }
 
 export interface ThemeFont {
@@ -27,7 +27,7 @@ export interface Theme {
   description?: string
   colors: ThemeColors
   font: ThemeFont
-  borderRadius: number
+  borderRadius: string | number
   isDefault?: boolean
   userId?: string
   createdAt?: string
@@ -62,7 +62,7 @@ export const defaultThemes: Theme[] = [
       heading: "Inter",
       body: "Inter",
     },
-    borderRadius: 8,
+    borderRadius: "0.5rem",
   },
   {
     id: "dark",
@@ -90,7 +90,7 @@ export const defaultThemes: Theme[] = [
       heading: "Inter",
       body: "Inter",
     },
-    borderRadius: 8,
+    borderRadius: "0.5rem",
   },
   {
     id: "corporate",
@@ -118,7 +118,7 @@ export const defaultThemes: Theme[] = [
       heading: "Montserrat",
       body: "Roboto",
     },
-    borderRadius: 4,
+    borderRadius: "0.25rem",
   },
   {
     id: "playful",
@@ -146,7 +146,7 @@ export const defaultThemes: Theme[] = [
       heading: "Poppins",
       body: "Poppins",
     },
-    borderRadius: 12,
+    borderRadius: "0.75rem",
   },
 ]
 
@@ -161,14 +161,14 @@ export function themeToCSS(theme: Theme): Record<string, string> {
     "--muted": theme.colors.muted,
     "--muted-foreground": theme.colors.mutedForeground,
     "--border": theme.colors.border,
-    "--input": theme.colors.input,
-    "--ring": theme.colors.ring,
-    "--success": theme.colors.success,
-    "--warning": theme.colors.warning,
-    "--error": theme.colors.error,
-    "--card": theme.colors.card,
-    "--card-foreground": theme.colors.cardForeground,
-    "--radius": `${theme.borderRadius}px`,
+    "--input": theme.colors.input || theme.colors.border,
+    "--ring": theme.colors.ring || theme.colors.primary,
+    "--success": theme.colors.success || "#22c55e",
+    "--warning": theme.colors.warning || "#f59e0b",
+    "--error": theme.colors.error || "#ef4444",
+    "--card": theme.colors.card || theme.colors.background,
+    "--card-foreground": theme.colors.cardForeground || theme.colors.foreground,
+    "--radius": typeof theme.borderRadius === "number" ? `${theme.borderRadius}px` : theme.borderRadius,
     "--font-heading": theme.font.heading,
     "--font-body": theme.font.body,
   }

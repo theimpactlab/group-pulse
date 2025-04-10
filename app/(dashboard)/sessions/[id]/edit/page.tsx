@@ -17,6 +17,7 @@ import { createPollTemplate } from "@/components/create-poll-template"
 import type { PollType } from "@/types/poll-types"
 import { ThemeSelector } from "@/components/theme-selector"
 import { useTheme } from "@/contexts/theme-context"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function EditSessionPage() {
   const router = useRouter()
@@ -31,6 +32,7 @@ export default function EditSessionPage() {
   const [content, setContent] = useState<PollType[]>([])
   const [selectedThemeId, setSelectedThemeId] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   useEffect(() => {
     async function fetchSession() {
@@ -50,7 +52,7 @@ export default function EditSessionPage() {
         setTitle(data.title)
         setDescription(data.description || "")
         setContent(data.content || [])
-        setSelectedThemeId(data.theme_id || themes[0].id)
+        setSelectedThemeId(data.theme_id || themes[0]?.id || "default")
       } catch (err) {
         console.error("Error fetching session:", err)
         setError("Failed to load session. Please try again.")
@@ -71,28 +73,56 @@ export default function EditSessionPage() {
     }
 
     setIsSaving(true)
+    setError(null)
+    setDebugInfo(null)
 
     try {
-      // Since RLS is disabled, we can use the Supabase client directly
-      const { error } = await supabase
-        .from("sessions")
-        .update({
-          title: title.trim(),
-          description: description.trim() || null,
-          content: content,
-          theme_id: selectedThemeId,
-        })
-        .eq("id", params.id)
+      // Create a debug object to help troubleshoot
+      const debug = {
+        sessionId: params.id,
+        userId: session?.user?.id,
+        selectedThemeId,
+        availableThemes: themes.map((t) => ({ id: t.id, name: t.name })),
+      }
 
-      if (error) throw error
+      // Create the update object
+      const updateData: any = {
+        title: title.trim(),
+        description: description.trim() || null,
+        content: content,
+      }
+
+      // Only add theme_id if it's a valid UUID
+      if (
+        selectedThemeId &&
+        selectedThemeId !== "default" &&
+        selectedThemeId !== "dark" &&
+        selectedThemeId !== "corporate" &&
+        selectedThemeId !== "playful" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedThemeId)
+      ) {
+        updateData.theme_id = selectedThemeId
+      } else {
+        // If using a default theme, set theme_id to null
+        updateData.theme_id = null
+      }
+
+      debug.updateData = updateData
+
+      // Update the session
+      const { error } = await supabase.from("sessions").update(updateData).eq("id", params.id)
+
+      if (error) {
+        setDebugInfo(debug)
+        throw error
+      }
 
       toast.success("Session saved successfully")
-
-      // Redirect to the sessions list after saving
       router.push(`/sessions/${params.id}`)
     } catch (err: any) {
       console.error("Error updating session:", err)
-      toast.error("Failed to save changes. Please try again.")
+      setError(`Failed to save changes: ${err.message || "Unknown error"}`)
+      setDebugInfo((prev) => ({ ...prev, error: err }))
       setIsSaving(false)
     }
   }
@@ -166,6 +196,12 @@ export default function EditSessionPage() {
                 <CardDescription>Basic information about your session</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="title">Session Title</Label>
                   <Input
@@ -188,7 +224,22 @@ export default function EditSessionPage() {
                 <div className="space-y-2">
                   <Label htmlFor="theme">Theme</Label>
                   <ThemeSelector selectedThemeId={selectedThemeId} onSelect={(theme) => setSelectedThemeId(theme.id)} />
+                  <p className="text-xs text-muted-foreground">
+                    {selectedThemeId &&
+                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedThemeId)
+                      ? "Using custom theme"
+                      : "Using default theme"}
+                  </p>
                 </div>
+
+                {debugInfo && (
+                  <div className="mt-4 p-4 bg-gray-100 rounded-md overflow-auto text-xs">
+                    <details>
+                      <summary className="cursor-pointer font-medium">Debug Information</summary>
+                      <pre className="mt-2">{JSON.stringify(debugInfo, null, 2)}</pre>
+                    </details>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
