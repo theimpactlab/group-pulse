@@ -203,8 +203,6 @@ export default function GDPRCompliancePage() {
             </p>
             <p>
               Email: ryan@theimpactlab.co.uk
-              <br />
-              Phone: +07787067808
             </p>
           </div>
         </div>

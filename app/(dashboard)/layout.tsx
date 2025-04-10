@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { MainNav } from "@/components/main-nav"
+import { SiteHeader } from "@/components/site-header"
 import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <div className="min-h-screen flex flex-col">
-      <MainNav />
+      <SiteHeader />
       {children}
       <Toaster position="top-right" />
     </div>
