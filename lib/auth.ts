@@ -37,7 +37,7 @@ export const authOptions: NextAuthOptions = {
 
           console.log("Authentication successful, user:", data.user.id)
 
-          // Get user profile data from the database if needed
+          // Get user profile data from the database
           const { data: userData, error: userError } = await supabase
             .from("profiles")
             .select("*")
@@ -45,13 +45,37 @@ export const authOptions: NextAuthOptions = {
             .single()
 
           if (userError) {
-            console.log("Profile fetch error (non-critical):", userError)
+            console.log("Profile fetch error, creating profile:", userError)
+
+            // If profile doesn't exist, create one
+            const { data: newProfile, error: createError } = await supabase
+              .from("profiles")
+              .insert([
+                {
+                  id: data.user.id,
+                  name: data.user.user_metadata?.name || data.user.email?.split("@")[0],
+                  email: data.user.email,
+                },
+              ])
+              .select()
+              .single()
+
+            if (createError) {
+              console.error("Error creating profile:", createError)
+            }
+
+            return {
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.user_metadata?.name || data.user.email?.split("@")[0],
+            }
           }
 
           return {
             id: data.user.id,
             email: data.user.email,
-            name: data.user.user_metadata?.name || userData?.name || data.user.email?.split("@")[0],
+            name: userData?.name || data.user.user_metadata?.name || data.user.email?.split("@")[0],
+            image: userData?.avatar_url || null,
           }
         } catch (error) {
           console.error("Auth error:", error)
@@ -72,6 +96,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.email = user.email
         token.name = user.name
+        token.image = user.image
       }
       return token
     },
@@ -81,6 +106,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.email = token.email as string
         session.user.name = (token.name as string) || null
+        session.user.image = (token.image as string) || null
       }
       return session
     },
