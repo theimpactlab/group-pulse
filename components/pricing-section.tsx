@@ -3,34 +3,52 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { Check } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function PricingSection() {
   useEffect(() => {
-    const script = document.createElement("script")
-    script.src = "https://www.paypal.com/sdk/js?client-id=AX_8QiXsmnhX9jBZoE-iwUiJo3ZG78HFTvfV7GVOhsVvMTleSF6-lbLgrsBQ9qbXqrsHizT1GghTC36f&vault=true&intent=subscription"
-    script.setAttribute("data-sdk-integration-source", "button-factory")
-    script.addEventListener("load", () => {
-      if (window.paypal) {
-        window.paypal.Buttons({
-          style: {
-            shape: "pill",
-            color: "black", // you can try "silver", "white", "blue", or "black"
-            layout: "vertical",
-            label: "subscribe"
-          },
-          createSubscription: function (data: any, actions: any) {
-            return actions.subscription.create({
-              plan_id: "P-33031622G52172046M72EPJY"
-            })
-          },
-          onApprove: function (data: any, actions: any) {
-            window.location.href = "/register"
-          }
-        }).render("#paypal-button-container-P-33031622G52172046M72EPJY")
+    const scriptId = "paypal-sdk-script"
+    const existingScript = document.getElementById(scriptId)
+
+    if (!existingScript) {
+      const script = document.createElement("script")
+      script.id = scriptId
+      script.src =
+        "https://www.paypal.com/sdk/js?client-id=AX_8QiXsmnhX9jBZoE-iwUiJo3ZG78HFTvfV7GVOhsVvMTleSF6-lbLgrsBQ9qbXqrsHizT1GghTC36f&vault=true&intent=subscription"
+      script.setAttribute("data-sdk-integration-source", "button-factory")
+
+      script.addEventListener("load", () => {
+        if (typeof window !== "undefined" && window.paypal) {
+          const containerId = "paypal-button-container-P-33031622G52172046M72EPJY"
+          const container = document.getElementById(containerId)
+          if (container) container.innerHTML = ""
+
+          window.paypal.Buttons({
+            style: {
+              shape: "pill",
+              color: "black",
+              layout: "vertical",
+              label: "subscribe",
+            },
+            createSubscription: function (data: any, actions: any) {
+              return actions.subscription.create({
+                plan_id: "P-33031622G52172046M72EPJY",
+              })
+            },
+            onApprove: function (data: any, actions: any) {
+              window.location.href = "/register"
+            },
+          }).render(`#${containerId}`)
+        }
+      })
+
+      document.body.appendChild(script)
+
+      return () => {
+        document.body.removeChild(script)
       }
-    })
-    document.body.appendChild(script)
+    }
   }, [])
 
   return (
@@ -126,11 +144,11 @@ export function PricingSection() {
                 </li>
               </ul>
             </CardContent>
-              <CardFooter>
-                <div className="w-full rounded-md bg-white p-4">
-                  <div id="paypal-button-container-P-33031622G52172046M72EPJY" />
-                </div>
-              </CardFooter>
+            <CardFooter>
+              <div className="w-full rounded-md bg-white p-4">
+                <div id="paypal-button-container-P-33031622G52172046M72EPJY" />
+              </div>
+            </CardFooter>
           </Card>
 
           {/* Enterprise Plan */}
