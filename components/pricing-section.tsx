@@ -37,7 +37,7 @@ export function PricingSection() {
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                  <span>Up to 25 participants per session</span>
+                  <span>Up to 100 participants per session</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
@@ -64,7 +64,7 @@ export function PricingSection() {
             <CardHeader>
               <CardTitle className="text-xl">Standard</CardTitle>
               <div className="mt-4 flex items-baseline text-3xl font-bold">
-                £4.95
+                £3.50
                 <span className="ml-1 text-sm font-medium text-muted-foreground">/month</span>
               </div>
               <CardDescription>Perfect for individuals and small teams</CardDescription>
@@ -81,7 +81,7 @@ export function PricingSection() {
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
-                  <span>Up to 100 participants per session</span>
+                  <span>Up to 200 participants per session</span>
                 </li>
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-500 mr-2 shrink-0" />
@@ -98,9 +98,9 @@ export function PricingSection() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button asChild className="w-full">
-                <Link href="/register">Get Started</Link>
-              </Button>
+              <div className="w-full rounded-md bg-white p-4">
+                <div id="paypal-button-container-standard" />
+              </div>
             </CardFooter>
           </Card>
 
