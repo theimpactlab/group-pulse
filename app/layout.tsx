@@ -12,6 +12,13 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "GroupPulse - Interactive Audience Engagement",
   description: "Create interactive polls, quizzes, and Q&As for your audience",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: { url: "/favicon.png", type: "image/png" },
+  },
 }
 
 export default function RootLayout({
