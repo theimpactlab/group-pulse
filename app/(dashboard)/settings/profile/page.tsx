@@ -42,8 +42,8 @@ export default function ProfilePage() {
         if (error) throw error
 
         setProfileData(data)
-        setName(data.name || session.user.name || "")
-        setEmail(session.user.email || "")
+        setName(data?.name || session.user.name || "")
+        setEmail(session.user.email || data?.email || "")
       } catch (err) {
         console.error("Error fetching profile:", err)
         toast({
