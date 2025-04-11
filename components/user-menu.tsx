@@ -11,13 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LogOut, Settings, User, KeyRound } from "lucide-react"
+import Link from "next/link"
 
 interface UserMenuProps {
   user?: {
     name?: string | null
     email?: string | null
+    image?: string | null
   }
 }
 
@@ -44,7 +46,11 @@ export function UserMenu({ user }: UserMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarFallback>{initials}</AvatarFallback>
+            {user?.image ? (
+              <AvatarImage src={user.image} alt={user.name || "User"} />
+            ) : (
+              <AvatarFallback>{initials}</AvatarFallback>
+            )}
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -56,17 +62,23 @@ export function UserMenu({ user }: UserMenuProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => (window.location.href = "/settings/profile")}>
-          <User className="mr-2 h-4 w-4" />
-          <span>Profile</span>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/profile" className="flex items-center cursor-pointer">
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => (window.location.href = "/settings")}>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
+        <DropdownMenuItem asChild>
+          <Link href="/settings" className="flex items-center cursor-pointer">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => (window.location.href = "/settings/security")}>
-          <KeyRound className="mr-2 h-4 w-4" />
-          <span>Change Password</span>
+        <DropdownMenuItem asChild>
+          <Link href="/settings/security" className="flex items-center cursor-pointer">
+            <KeyRound className="mr-2 h-4 w-4" />
+            <span>Change Password</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} disabled={isLoading} className="text-red-600 focus:text-red-600">

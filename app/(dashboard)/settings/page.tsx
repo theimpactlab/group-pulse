@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const settingsCategories = [
     {
       title: "Profile",
-      description: "Manage your personal information and preferences",
+      description: "Manage your personal information and avatar",
       icon: User,
       href: "/settings/profile",
       color: "text-blue-500",
@@ -66,13 +66,12 @@ export default function SettingsPage() {
                 <category.icon className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <CardTitle>{category.title}</CardTitle>
                   {category.enterprise && (
-                    <div className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-medium flex items-center">
-                      <Crown className="h-3 w-3 mr-1" />
-                      Enterprise
-                    </div>
+                    <span className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full font-medium flex items-center">
+                      <Crown className="h-3 w-3 mr-1" /> Enterprise
+                    </span>
                   )}
                 </div>
                 <CardDescription>{category.description}</CardDescription>
@@ -83,6 +82,12 @@ export default function SettingsPage() {
                 <div className="text-sm text-muted-foreground mb-4">
                   <p>• Change your password</p>
                   <p>• Manage account security</p>
+                </div>
+              )}
+              {category.title === "Notifications" && (
+                <div className="text-sm text-muted-foreground mb-4">
+                  <p>• Email notification preferences</p>
+                  <p>• Push notification settings</p>
                 </div>
               )}
               {category.title === "Themes" && (

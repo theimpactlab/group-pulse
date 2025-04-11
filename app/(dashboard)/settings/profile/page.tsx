@@ -11,9 +11,8 @@ import { Loader2, Save, User, KeyRound } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/components/ui/use-toast"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { PasswordChangeForm } from "@/components/password-change-form"
-// Add the import for the breadcrumb component at the top of the file
+import { AvatarUpload } from "@/components/avatar-upload"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -109,6 +108,43 @@ export default function ProfilePage() {
     }
   }
 
+  const handleAvatarChange = async (url: string) => {
+    if (!session?.user?.id) return
+
+    try {
+      // Update the profile in Supabase
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          avatar_url: url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", session.user.id)
+
+      if (error) throw error
+
+      // Update the session to reflect the changes
+      await update({
+        ...session,
+        user: {
+          ...session.user,
+          image: url,
+        },
+      })
+
+      // Update local state
+      setProfileData({
+        ...profileData,
+        avatar_url: url,
+      })
+
+      return Promise.resolve()
+    } catch (err) {
+      console.error("Error updating avatar:", err)
+      return Promise.reject(err)
+    }
+  }
+
   if (isLoading) {
     return (
       <main className="flex-1 container py-6 flex items-center justify-center">
@@ -116,14 +152,6 @@ export default function ProfilePage() {
       </main>
     )
   }
-
-  const initials = name
-    ? name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : email?.substring(0, 2).toUpperCase() || "U"
 
   return (
     <main className="flex-1 container py-6">
@@ -165,13 +193,13 @@ export default function ProfilePage() {
               <CardContent className="space-y-6">
                 <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
                   <div className="flex flex-col items-center">
-                    <Avatar className="h-24 w-24 mb-2">
-                      <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
-                    </Avatar>
-                    <Button variant="outline" size="sm" className="mt-2" disabled>
-                      <User className="h-4 w-4 mr-2" /> Change Avatar
-                    </Button>
-                    <p className="text-xs text-muted-foreground mt-1">(Coming soon)</p>
+                    <AvatarUpload
+                      userId={session?.user?.id || ""}
+                      initialAvatarUrl={profileData?.avatar_url || session?.user?.image}
+                      onAvatarChange={handleAvatarChange}
+                      size="lg"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">Click to change avatar</p>
                   </div>
 
                   <div className="space-y-4 flex-1">

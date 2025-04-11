@@ -6,6 +6,7 @@ import { BarChart3, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { UserMenu } from "@/components/user-menu"
+import { NotificationsDropdown } from "@/components/notifications-dropdown"
 
 export function SiteHeader() {
   const { data: session } = useSession()
@@ -26,15 +27,15 @@ export function SiteHeader() {
           <Link href="/sessions" className="text-sm font-medium transition-colors hover:text-primary">
             Sessions
           </Link>
-          <Link href="/analytics" className="text-sm font-medium transition-colors hover:text-primary">
-            Analytics
-          </Link>
         </nav>
 
-        <div className="flex flex-1 items-center justify-end space-x-4">
+        <div className="flex flex-1 items-center justify-end space-x-2">
           <nav className="flex items-center space-x-2">
             {session?.user ? (
-              <UserMenu user={session.user} />
+              <>
+                <NotificationsDropdown />
+                <UserMenu user={session.user} />
+              </>
             ) : (
               <Button asChild size="sm">
                 <Link href="/login">Login</Link>
@@ -65,13 +66,6 @@ export function SiteHeader() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Sessions
-              </Link>
-              <Link
-                href="/analytics"
-                className="text-sm font-medium px-3 py-2 rounded-md hover:bg-muted"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Analytics
               </Link>
               <Link
                 href="/settings"
