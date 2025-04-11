@@ -1,9 +1,38 @@
+"use client"
+
+import { useEffect } from "react"
 import Link from "next/link"
 import { Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function PricingSection() {
+  useEffect(() => {
+    const script = document.createElement("script")
+    script.src = "https://www.paypal.com/sdk/js?client-id=AX_8QiXsmnhX9jBZoE-iwUiJo3ZG78HFTvfV7GVOhsVvMTleSF6-lbLgrsBQ9qbXqrsHizT1GghTC36f&vault=true&intent=subscription"
+    script.setAttribute("data-sdk-integration-source", "button-factory")
+    script.addEventListener("load", () => {
+      if (window.paypal) {
+        window.paypal.Buttons({
+          style: {
+            shape: "pill",
+            color: "black", // you can try "silver", "white", "blue", or "black"
+            layout: "vertical",
+            label: "subscribe"
+          },
+          createSubscription: function (data: any, actions: any) {
+            return actions.subscription.create({
+              plan_id: "P-33031622G52172046M72EPJY"
+            })
+          },
+          onApprove: function (data: any, actions: any) {
+            window.location.href = "/register"
+          }
+        }).render("#paypal-button-container-P-33031622G52172046M72EPJY")
+      }
+    })
+    document.body.appendChild(script)
+  }, [])
+
   return (
     <section id="pricing" className="py-16 md:py-24">
       <div className="container">
@@ -97,11 +126,11 @@ export function PricingSection() {
                 </li>
               </ul>
             </CardContent>
-            <CardFooter>
-              <div className="w-full rounded-md bg-white p-4">
-                <div id="paypal-button-container-standard" />
-              </div>
-            </CardFooter>
+              <CardFooter>
+                <div className="w-full rounded-md bg-white p-4">
+                  <div id="paypal-button-container-P-33031622G52172046M72EPJY" />
+                </div>
+              </CardFooter>
           </Card>
 
           {/* Enterprise Plan */}
