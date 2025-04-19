@@ -9,9 +9,9 @@ export default function JoinRedirectPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect to the participate page directly
+    // Redirect to the join page with the ID as a query parameter
     if (params.id) {
-      router.push(`/participate/${params.id}`)
+      router.push(`/join?code=${params.id}`)
     }
   }, [params.id, router])
 

@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const id = params.id
 
     if (!id) {
-      return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
+      return NextResponse.json({ message: "Session ID or code is required" }, { status: 400 })
     }
 
     // First try to find by ID
@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       const { data: codeData, error: codeError } = await supabaseAdmin
         .from("sessions")
         .select("id, title, description, status, content, code")
-        .eq("code", id)
+        .eq("code", id.toUpperCase())
         .single()
 
       if (!codeError && codeData) {
