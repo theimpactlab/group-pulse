@@ -5,15 +5,17 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
-import { supabase } from "@/lib/supabase"
 import { v4 as uuidv4 } from "uuid"
+import { supabase } from "@/lib/supabase"
+import { LockedFeature } from "@/components/locked-feature"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { generateSessionCode } from "@/lib/session-utils"
 
 export default function CreateSessionPage() {
@@ -21,133 +23,127 @@ export default function CreateSessionPage() {
   const { data: session } = useSession()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [isCreating, setIsCreating] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleCreateSession = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!title.trim()) {
-      toast.error("Please provide a title for your session")
-      return
-    }
+    setError(null)
 
     if (!session?.user?.id) {
-      toast.error("You must be logged in to create a session")
+      setError("You must be logged in to create a session")
       return
     }
 
-    setIsCreating(true)
+    if (!title.trim()) {
+      setError("Please provide a title for your session")
+      return
+    }
+
+    setIsSubmitting(true)
 
     try {
-      // Generate a unique session ID and code
-      const sessionId = uuidv4()
-      const sessionCode = generateSessionCode(6)
+      // Generate a short code for the session
+      const sessionCode = generateSessionCode()
 
-      // Create the session
-      const { error } = await supabase.from("sessions").insert([
-        {
-          id: sessionId,
-          title: title.trim(),
-          description: description.trim() || null,
-          user_id: session.user.id,
-          status: "draft",
-          content: [],
-          code: sessionCode,
-        },
-      ])
+      // Create the new session object
+      const newSession: any = {
+        id: uuidv4(),
+        title: title.trim(),
+        description: description.trim() || null,
+        user_id: session.user.id,
+        status: "draft", // Set to draft by default
+        content: [],
+        code: sessionCode, // Add the short code
+      }
+
+      // Insert the session
+      const { data, error } = await supabase.from("sessions").insert([newSession]).select()
 
       if (error) {
         throw error
       }
 
       toast.success("Session created successfully")
-      router.push(`/sessions/${sessionId}/edit`)
-    } catch (err: any) {
-      console.error("Error creating session:", err)
-      toast.error(err.message || "Failed to create session")
-      setIsCreating(false)
+      router.push("/sessions")
+    } catch (error: any) {
+      console.error("Error creating session:", error)
+      setError(`Failed to create session: ${error.message || "Unknown error"}`)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1 container py-6">
-        <h1 className="text-3xl font-bold mb-6">Create New Session</h1>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Session Details</CardTitle>
-              <CardDescription>Enter the basic information for your new session</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreateSession} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Session Title</Label>
-                  <Input
-                    id="title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter a title for your session"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter a description for your session"
-                    rows={4}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isCreating}>
-                  {isCreating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
-                    </>
-                  ) : (
-                    "Create Session"
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>What happens next?</CardTitle>
-                <CardDescription>After creating your session</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p>
-                  After creating your session, you'll be able to add interactive elements like polls, quizzes, and word
-                  clouds.
-                </p>
-                <p>You can then present your session to participants who can join using a unique code or link.</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Session Types</CardTitle>
-                <CardDescription>Available interaction types</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Multiple Choice Polls</li>
-                  <li>Word Clouds</li>
-                  <li>Q&A Sessions</li>
-                  <li>Quizzes</li>
-                  <li>Rating Scales</li>
-                  <li>Open-ended Questions</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-3xl font-bold">Create New Session</h1>
         </div>
+
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Session Details</CardTitle>
+            <CardDescription>Provide basic information about your interactive session</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="title">Session Title</Label>
+                <Input
+                  id="title"
+                  placeholder="Enter a title for your session"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter a description for your session"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="theme">Theme</Label>
+                <LockedFeature
+                  featureName="Custom Themes"
+                  description="Create and apply custom themes to your sessions with the Enterprise plan."
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Using default theme. Upgrade to Enterprise for custom themes.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" type="button" onClick={() => router.push("/sessions")}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                  </>
+                ) : (
+                  "Create Session"
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
       </main>
     </div>
   )

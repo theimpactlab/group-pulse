@@ -17,16 +17,24 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
     }
 
-    // Fetch the session using admin privileges
-    const { data: sessionData, error: fetchError } = await supabaseAdmin
+    // First try to find by ID
+    let { data: sessionData, error: fetchError } = await supabaseAdmin
       .from("sessions")
-      .select("id, title, description, status, content")
+      .select("id, title, description, status, content, code")
       .eq("id", id)
       .single()
 
-    if (fetchError) {
-      console.error("Error fetching session:", fetchError)
-      return NextResponse.json({ message: fetchError.message }, { status: 500 })
+    // If not found by ID, try to find by code (if the ID is short enough to be a code)
+    if (!sessionData && id.length <= 10) {
+      const { data: codeData, error: codeError } = await supabaseAdmin
+        .from("sessions")
+        .select("id, title, description, status, content, code")
+        .eq("code", id)
+        .single()
+
+      if (!codeError && codeData) {
+        sessionData = codeData
+      }
     }
 
     if (!sessionData) {
@@ -44,4 +52,3 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ message: error.message || "Failed to fetch session" }, { status: 500 })
   }
 }
-
