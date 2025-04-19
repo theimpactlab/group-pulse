@@ -16,7 +16,19 @@ import { v4 as uuidv4 } from "uuid"
 import { supabase } from "@/lib/supabase"
 import { LockedFeature } from "@/components/locked-feature"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { generateSessionCode } from "@/lib/session-utils"
+
+// Function to generate a random session code
+function generateSessionCode(length = 6): string {
+  const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  let result = ""
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length)
+    result += characters.charAt(randomIndex)
+  }
+
+  return result
+}
 
 export default function CreateSessionPage() {
   const router = useRouter()
