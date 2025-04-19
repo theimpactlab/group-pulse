@@ -108,7 +108,7 @@ export default function PresentSessionPage() {
 
   // Generate join URL
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
-  const joinUrl = `${baseUrl}/join/${params.id}`
+  const joinUrl = `${baseUrl}/join/${sessionData?.code || params.id}`
 
   if (isLoading) {
     return (
@@ -251,12 +251,14 @@ export default function PresentSessionPage() {
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-medium mb-2">Session Code</h3>
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold tracking-wider">{params.id.substring(0, 6).toUpperCase()}</span>
+                  <span className="text-2xl font-bold tracking-wider">
+                    {sessionData.code || params.id.substring(0, 6).toUpperCase()}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      navigator.clipboard.writeText(params.id.substring(0, 6).toUpperCase())
+                      navigator.clipboard.writeText(sessionData.code || params.id.substring(0, 6).toUpperCase())
                       toast.success("Code copied to clipboard")
                     }}
                   >

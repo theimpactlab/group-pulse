@@ -26,7 +26,20 @@ export default function JoinSessionPage() {
       try {
         setIsLoading(true)
 
-        // Use the public API route instead of direct Supabase access
+        // First try to fetch by code (if it's a short code)
+        if (params.id.length <= 6) {
+          const codeResponse = await fetch(`/api/public/sessions/code/${params.id}`)
+
+          if (codeResponse.ok) {
+            const data = await codeResponse.json()
+            setSessionData(data)
+            toast.success(`Session "${data.title}" found!`)
+            setIsLoading(false)
+            return
+          }
+        }
+
+        // If not found by code or it's a UUID, try the regular session endpoint
         const response = await fetch(`/api/public/sessions/${params.id}`)
 
         if (!response.ok) {
@@ -57,7 +70,7 @@ export default function JoinSessionPage() {
 
     // Simulate joining
     setTimeout(() => {
-      window.location.href = `/participate/${params.id}?name=${encodeURIComponent(participantName)}`
+      window.location.href = `/participate/${sessionData.id}?name=${encodeURIComponent(participantName)}`
     }, 1000)
   }
 
@@ -124,4 +137,3 @@ export default function JoinSessionPage() {
     </div>
   )
 }
-
