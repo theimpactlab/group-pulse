@@ -16,6 +16,8 @@ import { v4 as uuidv4 } from "uuid"
 import { supabase } from "@/lib/supabase"
 import { LockedFeature } from "@/components/locked-feature"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+// Import the session code generator
+import { generateUniqueSessionCode } from "@/lib/session-utils"
 
 export default function CreateSessionPage() {
   const router = useRouter()
@@ -43,13 +45,22 @@ export default function CreateSessionPage() {
 
     try {
       // Create the new session object
-      const newSession: any = {
-        id: uuidv4(),
+      // In the handleSubmit function, before creating the session, add:
+      const sessionCode = await generateUniqueSessionCode(supabase)
+
+      // When creating the session, include the code:
+      const sessionData = {
         title: title.trim(),
         description: description.trim() || null,
         user_id: session.user.id,
-        status: "draft", // Set to draft by default
+        status: "draft",
         content: [],
+        code: sessionCode, // Add this line
+      }
+
+      const newSession: any = {
+        id: uuidv4(),
+        ...sessionData,
         // No theme_id - using default theme
       }
 
