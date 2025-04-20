@@ -17,19 +17,6 @@ import { supabase } from "@/lib/supabase"
 import { LockedFeature } from "@/components/locked-feature"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-// Function to generate a random session code
-function generateSessionCode(length = 6): string {
-  const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-  let result = ""
-
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length)
-    result += characters.charAt(randomIndex)
-  }
-
-  return result
-}
-
 export default function CreateSessionPage() {
   const router = useRouter()
   const { data: session } = useSession()
@@ -55,9 +42,6 @@ export default function CreateSessionPage() {
     setIsSubmitting(true)
 
     try {
-      // Generate a short code for the session
-      const sessionCode = generateSessionCode()
-
       // Create the new session object
       const newSession: any = {
         id: uuidv4(),
@@ -66,7 +50,7 @@ export default function CreateSessionPage() {
         user_id: session.user.id,
         status: "draft", // Set to draft by default
         content: [],
-        code: sessionCode, // Add the short code
+        // No theme_id - using default theme
       }
 
       // Insert the session

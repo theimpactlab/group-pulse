@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Plus, Users, Calendar, ArrowRight, Hash } from "lucide-react"
+import { Loader2, Plus, Users, Calendar, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
@@ -45,10 +45,9 @@ export default function SessionsPage() {
     }
   }
 
-  // Update the getJoinUrl function to use the code instead of ID
-  const getJoinUrl = (sessionItem: any) => {
+  const getJoinUrl = (id: string) => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
-    return `${baseUrl}/join/${sessionItem.code || sessionItem.id}`
+    return `${baseUrl}/join/${id}`
   }
 
   if (isLoading) {
@@ -109,12 +108,6 @@ export default function SessionsPage() {
                     <Calendar className="h-4 w-4 mr-2" />
                     Created {format(new Date(sessionItem.created_at), "PPP")}
                   </div>
-                  {sessionItem.code && (
-                    <div className="flex items-center text-sm font-medium">
-                      <Hash className="h-4 w-4 mr-2" />
-                      Code: {sessionItem.code}
-                    </div>
-                  )}
                   {sessionItem.content && (
                     <div className="flex items-center text-sm text-muted-foreground">
                       <Users className="h-4 w-4 mr-2" />
@@ -123,7 +116,7 @@ export default function SessionsPage() {
                   )}
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <CopyLinkButton url={getJoinUrl(sessionItem)} />
+                  <CopyLinkButton url={getJoinUrl(sessionItem.id)} />
                   <Button asChild size="sm">
                     <Link href={`/sessions/${sessionItem.id}`}>
                       View <ArrowRight className="h-4 w-4 ml-2" />
