@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/hooks/use-toast"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase"
 import { PointsAllocationParticipant } from "@/components/poll-participants/points-allocation-participant"
 
 interface Poll {
@@ -37,7 +37,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
   const [response, setResponse] = useState<any>({})
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   useEffect(() => {
     fetchSessionAndPoll()
