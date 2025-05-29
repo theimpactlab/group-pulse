@@ -1,130 +1,92 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useSearchParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle2, BarChart3 } from "lucide-react"
-import { useColorScheme } from "@/hooks/use-color-scheme"
-import { ThemeWrapper } from "../theme-wrapper"
+import { CheckCircle } from "lucide-react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
-export default function ThankYouPage() {
-  const params = useParams()
-  const searchParams = useSearchParams()
+interface Session {
+  id: string
+  title: string
+  code: string
+}
+
+export default function ThankYouPage({ params }: { params: { id: string } }) {
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const [sessionData, setSessionData] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const colorScheme = useColorScheme()
-
-  const participantName = searchParams.get("name") || "Anonymous"
-  const sessionId = params.id
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
-    async function fetchSessionInfo() {
-      if (!sessionId) return
+    fetchSession()
+  }, [params.id])
 
-      try {
-        const response = await fetch(`/api/public/sessions/${sessionId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setSessionData(data)
-        }
-      } catch (error) {
-        console.error("Error fetching session:", error)
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchSession = async () => {
+    try {
+      const { data: sessionData, error } = await supabase
+        .from("sessions")
+        .select("id, title, code")
+        .eq("id", params.id)
+        .single()
+
+      if (error) throw error
+      setSession(sessionData)
+    } catch (error) {
+      console.error("Error fetching session:", error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    fetchSessionInfo()
-  }, [sessionId])
+  if (loading) {
+    return (
+      <div className="container mx-auto py-10">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <ThemeWrapper sessionId={sessionId as string}>
-      <div className="flex min-h-screen flex-col">
-        {/* Top bar */}
-        <div
-          style={{
-            backgroundColor: "var(--theme-primary)",
-            color: "#ffffff",
-          }}
-          className="p-4 transition-colors duration-300"
-        >
-          <div className="container flex justify-between items-center">
-            <div className="font-medium" style={{ fontFamily: "var(--theme-font-heading)" }}>
-              {sessionData?.title || "Session Complete"}
-            </div>
-            <div className="text-sm">Participant: {participantName}</div>
+    <div className="container mx-auto py-10 max-w-2xl">
+      <Card>
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-        </div>
+          <CardTitle className="text-2xl">Thank You!</CardTitle>
+          <CardDescription>Your response has been submitted successfully.</CardDescription>
+        </CardHeader>
+        <CardContent className="text-center space-y-4">
+          {session && (
+            <div>
+              <p className="text-sm text-muted-foreground">
+                Session: <span className="font-medium">{session.title}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Code: <span className="font-mono font-bold">{session.code}</span>
+              </p>
+            </div>
+          )}
 
-        {/* Main content */}
-        <main className="flex-1 container py-12 flex items-center justify-center transition-colors duration-300">
-          <Card
-            className="w-full max-w-md shadow-lg text-center transition-colors duration-300"
-            style={{
-              borderColor: "var(--theme-border)",
-              borderRadius: "var(--theme-radius)",
-            }}
-          >
-            <CardHeader className="pb-2">
-              <div
-                className="mx-auto p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4"
-                style={{
-                  backgroundColor: "var(--theme-accent)",
-                  color: "var(--theme-primary)",
-                }}
-              >
-                <CheckCircle2 className="h-8 w-8" />
-              </div>
-              <CardTitle className="text-2xl" style={{ fontFamily: "var(--theme-font-heading)" }}>
-                Thank You!
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-6">
-              <p>Your responses have been submitted successfully. Thank you for participating in this session.</p>
-              {sessionData?.status === "active" && (
-                <div
-                  className="mt-6 p-4 rounded-lg"
-                  style={{
-                    backgroundColor: "var(--theme-accent)",
-                    color: "var(--theme-foreground)",
-                  }}
-                >
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <BarChart3 className="h-5 w-5" />
-                    <p className="font-medium">Results will be shared soon</p>
-                  </div>
-                  <p className="text-sm">The presenter may share the results of this session with you shortly.</p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  // Try to close the window
-                  window.close()
-                  // Fallback if window.close() doesn't work (some browsers block it)
-                  setTimeout(() => {
-                    // If we're still here after trying to close, redirect to homepage
-                    window.location.href = "/"
-                  }, 300)
-                }}
-                className="mr-2"
-              >
-                Close Window
-              </Button>
-              <Button
-                onClick={() => router.push(`/join/${sessionId}`)}
-                style={{ backgroundColor: "var(--theme-primary)" }}
-              >
-                Rejoin Session
-              </Button>
-            </CardFooter>
-          </Card>
-        </main>
-      </div>
-    </ThemeWrapper>
+          <div className="space-y-2">
+            <Button onClick={() => router.push(`/participate/${params.id}`)} variant="outline" className="w-full">
+              Return to Session
+            </Button>
+            <Button onClick={() => router.push("/dashboard")} className="w-full">
+              Go to Dashboard
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
