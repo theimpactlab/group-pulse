@@ -288,7 +288,7 @@ export default function PublicResultsPage() {
         <h3 className="text-lg font-medium">{poll.data.question}</h3>
 
         <div className="space-y-3">
-          {sortedOptions.map((option: any) => {
+          {sortedOptions.map((option: any, index: number) => {
             const avgPoints = averagePoints[option.id] || 0
             const totalPoints = optionPoints[option.id] || 0
             const maxAvg = Math.max(...Object.values(averagePoints))
@@ -296,15 +296,20 @@ export default function PublicResultsPage() {
             return (
               <div key={option.id} className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg">
                 <div className="flex justify-between items-center">
-                  <p className="font-medium">{option.text}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+                      {index + 1}
+                    </div>
+                    <p className="font-medium">{option.text}</p>
+                  </div>
                   <div className="text-right">
                     <div className="font-bold">{totalPoints} pts</div>
-                    <div className="text-sm text-muted-foreground">Avg: {avgPoints.toFixed(1)} pts per participant</div>
+                    <div className="text-sm font-medium text-amber-600">Avg: {avgPoints.toFixed(1)} pts</div>
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                   <div
-                    className="bg-primary h-2 rounded-full"
+                    className="bg-amber-500 h-2 rounded-full"
                     style={{ width: `${maxAvg > 0 ? Math.round((avgPoints / maxAvg) * 100) : 0}%` }}
                   ></div>
                 </div>
