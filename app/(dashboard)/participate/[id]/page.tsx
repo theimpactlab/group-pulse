@@ -71,14 +71,28 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     setSubmitting(true)
     try {
       const currentPoll = getCurrentPoll()
-      const { error } = await supabase.from("responses").insert({
+
+      // Prepare the response data
+      const submissionData = {
         session_id: session.id,
         poll_id: currentPoll.id || `poll_${Date.now()}`,
-        data: responseData,
+        response: responseData, // Changed from 'data' to 'response'
+        participant_name: null, // Optional participant name
+        participant_id: `participant_${Date.now()}`, // Generate a participant ID
+        element_id: currentPoll.id || `poll_${Date.now()}`, // Use poll ID as element ID
         created_at: new Date().toISOString(),
-      })
+      }
 
-      if (error) throw error
+      console.log("Submitting response data:", submissionData)
+
+      const { data, error } = await supabase.from("responses").insert(submissionData).select()
+
+      if (error) {
+        console.error("Supabase error:", error)
+        throw error
+      }
+
+      console.log("Response submitted successfully:", data)
 
       toast({
         title: "Response submitted",
