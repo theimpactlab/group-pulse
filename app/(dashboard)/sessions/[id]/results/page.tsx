@@ -533,8 +533,11 @@ export default function ResultsPage() {
 
     // Sum up points for each option
     pollResponses.forEach((response) => {
-      if (typeof response.response === "object") {
-        Object.entries(response.response).forEach(([optionId, points]: any) => {
+      // Handle both formats: direct points object or wrapped in allocation
+      const responseData = response.response?.allocation || response.response
+
+      if (typeof responseData === "object") {
+        Object.entries(responseData).forEach(([optionId, points]: any) => {
           optionTotals[optionId] = (optionTotals[optionId] || 0) + points
           if (points > 0) {
             optionCounts[optionId] = (optionCounts[optionId] || 0) + 1

@@ -244,10 +244,15 @@ export default function PublicResultsPage() {
     const participantPoints: Record<string, number> = {}
     pollResponses.forEach((response) => {
       const participantName = response.participant_name || "Anonymous"
-      participantPoints[participantName] = Object.values(response.response).reduce(
-        (sum: any, points: any) => sum + points,
-        0,
-      )
+      // Handle both formats: direct points object or wrapped in allocation
+      const responseData = response.response?.allocation || response.response
+
+      if (typeof responseData === "object") {
+        participantPoints[participantName] = Object.values(responseData).reduce(
+          (sum: any, points: any) => sum + points,
+          0,
+        )
+      }
     })
 
     // Calculate average points for each option
@@ -259,10 +264,15 @@ export default function PublicResultsPage() {
     })
 
     pollResponses.forEach((response) => {
-      Object.entries(response.response).forEach(([optionId, points]: any) => {
-        optionPoints[optionId] = (optionPoints[optionId] || 0) + points
-        optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
-      })
+      // Handle both formats: direct points object or wrapped in allocation
+      const responseData = response.response?.allocation || response.response
+
+      if (typeof responseData === "object") {
+        Object.entries(responseData).forEach(([optionId, points]: any) => {
+          optionPoints[optionId] = (optionPoints[optionId] || 0) + points
+          optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
+        })
+      }
     })
 
     const averagePoints: Record<string, number> = {}
@@ -281,6 +291,7 @@ export default function PublicResultsPage() {
           {sortedOptions.map((option: any) => {
             const avgPoints = averagePoints[option.id] || 0
             const totalPoints = optionPoints[option.id] || 0
+            const maxAvg = Math.max(...Object.values(averagePoints))
 
             return (
               <div key={option.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -289,7 +300,7 @@ export default function PublicResultsPage() {
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                     <div
                       className="bg-primary h-2 rounded-full"
-                      style={{ width: `${Math.min(100, (avgPoints / poll.data.maxPoints) * 100)}%` }}
+                      style={{ width: `${maxAvg > 0 ? Math.round((avgPoints / maxAvg) * 100) : 0}%` }}
                     ></div>
                   </div>
                 </div>
