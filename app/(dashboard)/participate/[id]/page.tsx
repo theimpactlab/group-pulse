@@ -1,606 +1,356 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Slider } from "@/components/ui/slider"
-import { Loader2 } from "lucide-react"
-import { toast } from "sonner"
-import { v4 as uuidv4 } from "uuid"
-import type { PollType } from "@/types/poll-types"
-import { supabase } from "@/lib/supabase"
-import { useColorScheme } from "@/hooks/use-color-scheme"
-import { ThemeWrapper } from "./theme-wrapper"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { api } from "@/convex/_generated/api"
+import { useMutation, useQuery } from "convex/react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { PointsAllocationParticipant } from "@/components/poll-participants/points-allocation-participant"
 
-export default function ParticipateSessionPage() {
-  const params = useParams()
-  const searchParams = useSearchParams()
+const ParticipatePage = ({ params }: { params: { id: string } }) => {
   const router = useRouter()
-  const participantName = searchParams.get("name") || "Anonymous"
-  const [isLoading, setIsLoading] = useState(true)
-  const [sessionData, setSessionData] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
-  const [responses, setResponses] = useState<Record<string, any>>({})
-  const [textInputs, setTextInputs] = useState<Record<string, string>>({})
-  const [scaleValues, setScaleValues] = useState<Record<string, number>>({})
-  const [sliderValues, setSliderValues] = useState<Record<string, number>>({})
-  const [rankingOrder, setRankingOrder] = useState<Record<string, string[]>>({})
+  const { toast } = useToast()
+  const poll = useQuery(api.polls.getPoll, { id: params.id })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submittedPolls, setSubmittedPolls] = useState<string[]>([])
+  const submitResponse = useMutation(api.responses.createResponse)
 
-  const colorScheme = useColorScheme()
+  const SimpleChoiceSchema = z.object({
+    choice: z.string().min(1, {
+      message: "Please select a choice.",
+    }),
+  })
 
-  useEffect(() => {
-    async function fetchSession() {
-      if (!params.id) return
+  const RankingSchema = z.object({
+    ranking: z.array(z.string()).refine((data) => data.length > 0, {
+      message: "You must rank all options.",
+    }),
+  })
 
-      try {
-        setIsLoading(true)
+  const MultipleChoiceSchema = z.object({
+    choices: z.array(z.string()).refine((data) => data.length > 0, {
+      message: "You must select at least one option.",
+    }),
+  })
 
-        // Use the public API route instead of direct Supabase access
-        const response = await fetch(`/api/public/sessions/${params.id}`)
+  const FreeTextSchema = z.object({
+    text: z.string().min(1, {
+      message: "Please enter a response.",
+    }),
+  })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.message || "Failed to load session")
-        }
+  const formSimpleChoice = useForm<z.infer<typeof SimpleChoiceSchema>>({
+    resolver: zodResolver(SimpleChoiceSchema),
+    defaultValues: {
+      choice: "",
+    },
+  })
 
-        const data = await response.json()
-        setSessionData(data)
-        toast.success(`Session "${data.title}" found!`)
-      } catch (err: any) {
-        console.error("Error fetching session:", err)
-        setError(err.message || "Failed to load session. Please check the session code and try again.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  const formRanking = useForm<z.infer<typeof RankingSchema>>({
+    resolver: zodResolver(RankingSchema),
+    defaultValues: {
+      ranking: [],
+    },
+  })
 
-    fetchSession()
-  }, [params.id])
+  const formMultipleChoice = useForm<z.infer<typeof MultipleChoiceSchema>>({
+    resolver: zodResolver(MultipleChoiceSchema),
+    defaultValues: {
+      choices: [],
+    },
+  })
 
-  const handleResponse = (pollId: string, response: any) => {
-    setResponses({
-      ...responses,
-      [pollId]: response,
-    })
-  }
+  const formFreeText = useForm<z.infer<typeof FreeTextSchema>>({
+    resolver: zodResolver(FreeTextSchema),
+    defaultValues: {
+      text: "",
+    },
+  })
 
-  const handleTextInput = (pollId: string, value: string) => {
-    setTextInputs({
-      ...textInputs,
-      [pollId]: value,
-    })
-    // Automatically update the response as the user types
-    handleResponse(pollId, value)
-  }
-
-  const handleTextSubmit = (pollId: string) => {
-    if (textInputs[pollId]?.trim()) {
-      handleResponse(pollId, textInputs[pollId])
-      // Clear the input after submission
-      setTextInputs({
-        ...textInputs,
-        [pollId]: "",
-      })
-    }
-  }
-
-  const handleScaleChange = (pollId: string, value: number) => {
-    setScaleValues({
-      ...scaleValues,
-      [pollId]: value,
-    })
-    handleResponse(pollId, value)
-  }
-
-  const handleSliderChange = (pollId: string, value: number[]) => {
-    setSliderValues({
-      ...sliderValues,
-      [pollId]: value[0],
-    })
-    handleResponse(pollId, value[0])
-  }
-
-  const handleRankingChange = (pollId: string, itemId: string, direction: "up" | "down") => {
-    const currentPoll = sessionData.content.find((poll: any) => poll.id === pollId)
-    if (!currentPoll) return
-
-    // Initialize ranking order if not already set
-    if (!rankingOrder[pollId]) {
-      const initialOrder = currentPoll.data.options.map((option: any) => option.id)
-      setRankingOrder({
-        ...rankingOrder,
-        [pollId]: initialOrder,
-      })
-      return
-    }
-
-    const currentOrder = [...rankingOrder[pollId]]
-    const currentIndex = currentOrder.indexOf(itemId)
-
-    if (currentIndex === -1) return
-
-    // Move item up or down
-    if (direction === "up" && currentIndex > 0) {
-      // Swap with the item above
-      ;[currentOrder[currentIndex], currentOrder[currentIndex - 1]] = [
-        currentOrder[currentIndex - 1],
-        currentOrder[currentIndex],
-      ]
-    } else if (direction === "down" && currentIndex < currentOrder.length - 1) {
-      // Swap with the item below
-      ;[currentOrder[currentIndex], currentOrder[currentIndex + 1]] = [
-        currentOrder[currentIndex + 1],
-        currentOrder[currentIndex],
-      ]
-    }
-
-    setRankingOrder({
-      ...rankingOrder,
-      [pollId]: currentOrder,
-    })
-
-    handleResponse(pollId, currentOrder)
-  }
-
-  // Replace the submitResponse function with this simplified version that uses direct Supabase access
-  // and ensures proper toast notifications and redirects
-
-  const submitResponse = async (pollId: string) => {
-    if (submittedPolls.includes(pollId)) {
-      toast.info("You've already submitted a response for this question")
-      return
-    }
-
-    if (!responses[pollId]) {
-      toast.error("Please provide a response before submitting")
-      return
-    }
-
+  const handleSubmitResponse = async (data: any) => {
     setIsSubmitting(true)
-
     try {
-      // Create the response data object
-      const responseData = {
-        id: uuidv4(),
-        poll_id: pollId,
-        session_id: params.id as string,
-        participant_name: participantName,
-        response: responses[pollId],
-        created_at: new Date().toISOString(),
-      }
-
-      console.log("Submitting response:", responseData)
-
-      // Use direct Supabase access since there's no RLS
-      const { error } = await supabase.from("responses").insert([responseData])
-
-      if (error) {
-        console.error("Supabase error:", error)
-        throw new Error(error.message || "Failed to submit response")
-      }
-
-      // Force a toast notification
-      toast.success("Response submitted successfully!")
-
-      // Update submitted polls state
-      setSubmittedPolls((prev) => [...prev, pollId])
-
-      // Check if this was the last poll
-      const isLastPoll = currentSlideIndex === sessionData.content.length - 1
-      const allPollsSubmitted = [...submittedPolls, pollId].length === sessionData.content.length
-
-      if (isLastPoll || allPollsSubmitted) {
-        // If this was the last poll or all polls are now submitted, redirect to thank you page
-        toast.success("All done! Redirecting to thank you page...")
-        setTimeout(() => {
-          router.push(`/participate/${params.id}/thank-you?name=${encodeURIComponent(participantName)}`)
-        }, 1500)
-      } else if (currentSlideIndex < sessionData.content.length - 1) {
-        // Otherwise, move to the next slide if available
-        toast.success("Moving to next question...")
-        setTimeout(() => {
-          setCurrentSlideIndex(currentSlideIndex + 1)
-        }, 1000)
-      }
-    } catch (err: any) {
-      console.error("Error submitting response:", err)
-      toast.error(err.message || "Failed to submit response. Please try again.")
+      await submitResponse({
+        pollId: params.id,
+        data: data,
+      })
+      toast({
+        title: "Response submitted",
+        description: "Your response has been recorded.",
+      })
+      router.push("/(dashboard)")
+    } catch (error) {
+      toast({
+        title: "Error submitting response",
+        description: "Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const renderPollParticipation = (poll: PollType) => {
-    const isSubmitted = submittedPolls.includes(poll.id)
+  const renderPoll = () => {
+    if (!poll) {
+      return <div>Loading...</div>
+    }
 
     switch (poll.type) {
-      case "multiple-choice":
+      case "simple-choice":
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <div className="space-y-3">
-              {poll.data.options.map((option) => {
-                const isSelected = poll.data.allowMultipleAnswers
-                  ? (responses[poll.id] || []).includes(option.id)
-                  : responses[poll.id] === option.id
-
-                return (
-                  <Button
-                    key={option.id}
-                    variant={isSelected ? "default" : "outline"}
-                    className="w-full justify-start h-auto py-3 px-4 text-left"
-                    onClick={() => {
-                      if (isSubmitted) return
-
-                      if (poll.data.allowMultipleAnswers) {
-                        const currentSelections = responses[poll.id] || []
-                        const newSelections = currentSelections.includes(option.id)
-                          ? currentSelections.filter((id: string) => id !== option.id)
-                          : [...currentSelections, option.id]
-                        handleResponse(poll.id, newSelections)
-                      } else {
-                        handleResponse(poll.id, option.id)
-                      }
-                    }}
-                    disabled={isSubmitted}
-                  >
-                    {option.text}
-                  </Button>
-                )
-              })}
-            </div>
-            {poll.data.allowMultipleAnswers && (
-              <p className="text-xs text-muted-foreground">You can select multiple options</p>
-            )}
-          </div>
-        )
-      case "word-cloud":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <div className="space-y-2">
-              <Input
-                value={textInputs[poll.id] || ""}
-                onChange={(e) => handleTextInput(poll.id, e.target.value)}
-                placeholder="Enter your words or phrases"
-                className="w-full"
-                disabled={isSubmitted}
+          <Form {...formSimpleChoice}>
+            <form onSubmit={formSimpleChoice.handleSubmit(handleSubmitResponse)} className="space-y-4">
+              <FormField
+                control={formSimpleChoice.control}
+                name="choice"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Select an option</FormLabel>
+                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value}>
+                      <div className="flex flex-col space-y-2">
+                        {poll.data.options.map((option: string) => (
+                          <FormItem key={option} className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value={option} id={option} />
+                            </FormControl>
+                            <FormLabel htmlFor={option}>{option}</FormLabel>
+                          </FormItem>
+                        ))}
+                      </div>
+                    </RadioGroup>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <Button
-                onClick={() => handleTextSubmit(poll.id)}
-                disabled={!textInputs[poll.id]?.trim() || isSubmitted}
-                className="w-full"
-              >
+              <Button type="submit" disabled={isSubmitting}>
                 Submit
               </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              You can submit up to {poll.data.maxEntries} word{poll.data.maxEntries > 1 ? "s" : ""}
-            </p>
-          </div>
-        )
-      case "open-ended":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <div className="space-y-2">
-              <Textarea
-                value={textInputs[poll.id] || ""}
-                onChange={(e) => handleTextInput(poll.id, e.target.value)}
-                placeholder="Type your response here..."
-                className="w-full min-h-[100px]"
-                maxLength={poll.data.maxResponseLength || undefined}
-                disabled={isSubmitted}
-              />
-              {poll.data.maxResponseLength ? (
-                <p className="text-xs text-muted-foreground">Maximum {poll.data.maxResponseLength} characters</p>
-              ) : null}
-            </div>
-          </div>
-        )
-      case "scale":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <div className="p-6 bg-gray-100 rounded-md">
-              <div className="flex justify-between mb-2">
-                <span className="text-sm">{poll.data.minLabel || poll.data.min}</span>
-                <span className="text-sm">{poll.data.maxLabel || poll.data.max}</span>
-              </div>
-              <div className="flex justify-around py-4">
-                {Array.from({ length: (poll.data.max - poll.data.min) / poll.data.step + 1 }).map((_, i) => {
-                  const value = poll.data.min + i * poll.data.step
-                  const isSelected = scaleValues[poll.id] === value
-
-                  return (
-                    <Button
-                      key={i}
-                      variant={isSelected ? "default" : "outline"}
-                      className={`rounded-full w-10 h-10 p-0 ${isSelected ? "ring-2 ring-primary" : ""}`}
-                      onClick={() => handleScaleChange(poll.id, value)}
-                      disabled={isSubmitted}
-                    >
-                      {value}
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )
-      case "slider":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <div className="p-6 bg-gray-50 rounded-md">
-              <div className="flex justify-between mb-6">
-                <span className="text-sm font-medium">{poll.data.leftOption}</span>
-                <span className="text-sm font-medium">{poll.data.rightOption}</span>
-              </div>
-              <Slider
-                value={[sliderValues[poll.id] || Math.floor(poll.data.steps / 2)]}
-                min={0}
-                max={poll.data.steps - 1}
-                step={1}
-                onValueChange={(value) => handleSliderChange(poll.id, value)}
-                disabled={isSubmitted}
-                className="my-6"
-              />
-              <div className="mt-8 text-center">
-                <div className="inline-block px-4 py-2 bg-primary/10 rounded-full">
-                  <p className="text-sm font-medium text-primary">
-                    Your position:{" "}
-                    {sliderValues[poll.id] !== undefined
-                      ? Math.round((sliderValues[poll.id] / (poll.data.steps - 1)) * 100)
-                      : 50}
-                    %
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            </form>
+          </Form>
         )
       case "ranking":
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <p className="text-sm text-muted-foreground mb-2">
-              Arrange items in order of preference using the up and down buttons
-            </p>
-            <div className="space-y-2">
-              {(rankingOrder[poll.id] || poll.data.options.map((o) => o.id)).map((itemId, index) => {
-                const option = poll.data.options.find((o) => o.id === itemId)
-                if (!option) return null
-
-                return (
-                  <div
-                    key={option.id}
-                    className="p-4 bg-white rounded-md border border-gray-200 flex items-center justify-between"
-                  >
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mr-3">
-                        {index + 1}
+          <Form {...formRanking}>
+            <form onSubmit={formRanking.handleSubmit(handleSubmitResponse)} className="space-y-4">
+              <FormField
+                control={formRanking.control}
+                name="ranking"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Rank the options</FormLabel>
+                    {poll.data.options.map((option: string, index: number) => (
+                      <div key={option} className="flex items-center space-x-2">
+                        <Label htmlFor={`ranking-${index}`}>{index + 1}.</Label>
+                        <Select
+                          onValueChange={(value) => {
+                            const newRanking = [...field.value]
+                            newRanking[index] = value
+                            field.onChange(newRanking)
+                          }}
+                        >
+                          <SelectTrigger id={`ranking-${index}`}>
+                            <SelectValue placeholder="Select" defaultValue={field.value[index]} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {poll.data.options.map((option: string) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <span>{option.text}</span>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRankingChange(poll.id, option.id, "up")}
-                        disabled={index === 0 || isSubmitted}
-                      >
-                        ↑
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRankingChange(poll.id, option.id, "down")}
-                        disabled={index === poll.data.options.length - 1 || isSubmitted}
-                      >
-                        ↓
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )
-      case "qa":
-        return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.title}</h2>
-            {poll.data.description && <p className="text-gray-700 mb-4">{poll.data.description}</p>}
-            <div className="space-y-2">
-              <Textarea
-                value={textInputs[poll.id] || ""}
-                onChange={(e) => handleTextInput(poll.id, e.target.value)}
-                placeholder="Type your question here..."
-                className="w-full min-h-[100px]"
-                disabled={isSubmitted}
+                    ))}
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <Button
-                onClick={() => handleTextSubmit(poll.id)}
-                disabled={!textInputs[poll.id]?.trim() || isSubmitted}
-                className="w-full"
-              >
-                Submit Question
+              <Button type="submit" disabled={isSubmitting}>
+                Submit
               </Button>
-            </div>
-            {poll.data.allowAnonymous && (
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" id="anonymous" disabled={isSubmitted} />
-                <label htmlFor="anonymous" className="text-sm">
-                  Submit anonymously
-                </label>
-              </div>
-            )}
-          </div>
+            </form>
+          </Form>
         )
-      case "quiz":
+      case "multiple-choice":
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <div className="space-y-3">
-              {poll.data.options.map((option) => {
-                const isSelected = responses[poll.id] === option.id
-
-                return (
-                  <Button
-                    key={option.id}
-                    variant={isSelected ? "default" : "outline"}
-                    className="w-full justify-start h-auto py-3 px-4 text-left"
-                    onClick={() => handleResponse(poll.id, option.id)}
-                    disabled={isSubmitted}
-                  >
-                    {option.text}
-                  </Button>
-                )
-              })}
-            </div>
-            {responses[poll.id] && poll.data.showCorrectAnswer && isSubmitted && (
-              <div className="p-4 rounded-md bg-green-50 border border-green-200">
-                <p className="font-medium text-green-700">
-                  {poll.data.options.find((o) => o.id === responses[poll.id])?.isCorrect
-                    ? "Correct!"
-                    : "Incorrect. Try again!"}
-                </p>
-              </div>
-            )}
-          </div>
+          <Form {...formMultipleChoice}>
+            <form onSubmit={formMultipleChoice.handleSubmit(handleSubmitResponse)} className="space-y-4">
+              <FormField
+                control={formMultipleChoice.control}
+                name="choices"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Select the options</FormLabel>
+                    {poll.data.options.map((option: string) => (
+                      <div key={option} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={option}
+                          checked={field.value.includes(option)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              field.onChange([...field.value, option])
+                            } else {
+                              field.onChange(field.value.filter((val) => val !== option))
+                            }
+                          }}
+                        />
+                        <Label htmlFor={option}>{option}</Label>
+                      </div>
+                    ))}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isSubmitting}>
+                Submit
+              </Button>
+            </form>
+          </Form>
         )
-      case "image-choice":
+      case "free-text":
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold">{poll.data.question}</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {poll.data.options.map((option) => {
-                const isSelected = responses[poll.id] === option.id
-
-                return (
-                  <div
-                    key={option.id}
-                    className={`border rounded-md p-2 cursor-pointer transition-all ${
-                      isSelected ? "ring-2 ring-primary border-primary" : "bg-white hover:bg-gray-50"
-                    }`}
-                    onClick={() => !isSubmitted && handleResponse(poll.id, option.id)}
-                  >
-                    <img
-                      src={option.imageUrl || "/placeholder.svg"}
-                      alt={option.caption || "Image option"}
-                      className="w-full h-40 object-contain mb-2"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=150&width=200"
-                      }}
-                    />
-                    {option.caption && <p className="text-center font-medium">{option.caption}</p>}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+          <Form {...formFreeText}>
+            <form onSubmit={formFreeText.handleSubmit(handleSubmitResponse)} className="space-y-4">
+              <FormField
+                control={formFreeText.control}
+                name="text"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Enter your response</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Type your response here." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isSubmitting}>
+                Submit
+              </Button>
+            </form>
+          </Form>
         )
+      case "points-allocation":
+        return <PointsAllocationParticipant poll={poll} onSubmit={handleSubmitResponse} disabled={isSubmitting} />
       default:
         return <div>Unknown poll type</div>
     }
   }
 
-  if (isLoading) {
+  if (!poll) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="container mx-auto py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <Skeleton className="h-6 w-80" />
+            </CardTitle>
+            <CardDescription>
+              <Skeleton className="h-4 w-50" />
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <h2 className="text-sm font-medium">Description</h2>
+                <Skeleton className="h-4 w-[400px]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="bg-red-50 text-red-600 p-4 rounded-md max-w-md text-center">{error}</div>
-      </div>
-    )
-  }
-
-  const hasContent = sessionData?.content && sessionData.content.length > 0
-  const currentSlide = hasContent ? sessionData.content[currentSlideIndex] : null
-  const isCurrentPollSubmitted = currentSlide ? submittedPolls.includes(currentSlide.id) : false
 
   return (
-    <ThemeWrapper sessionId={params.id as string}>
-      <div className="flex min-h-screen flex-col">
-        {/* Top bar */}
-        <div
-          style={{
-            backgroundColor: "var(--theme-primary)",
-            color: "#ffffff",
-          }}
-          className="p-4 transition-colors duration-300"
-        >
-          <div className="container flex justify-between items-center">
-            <div className="font-medium" style={{ fontFamily: "var(--theme-font-heading)" }}>
-              {sessionData.title}
+    <div className="container mx-auto py-10">
+      <Card>
+        <CardHeader>
+          <CardTitle>{poll.title}</CardTitle>
+          <CardDescription>{poll.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <h2 className="text-sm font-medium">Overview</h2>
+              <p className="text-muted-foreground">
+                This is a {poll.type} poll.{" "}
+                {poll.type === "simple-choice" &&
+                  `Choose one of the following options: ${poll.data.options.join(", ")}`}
+                {poll.type === "ranking" && `Rank the following options: ${poll.data.options.join(", ")}`}
+                {poll.type === "multiple-choice" &&
+                  `Select multiple options from the following: ${poll.data.options.join(", ")}`}
+                {poll.type === "free-text" && `Enter your response in the text box.`}
+                {poll.type === "points-allocation" && `100 Points: ${poll.data.question}`}
+              </p>
             </div>
-            <div className="text-sm">Joined as: {participantName}</div>
+            {renderPoll()}
           </div>
-        </div>
-
-        {/* Main content */}
-        <main className="flex-1 container py-6 flex items-center justify-center transition-colors duration-300">
-          {!hasContent ? (
-            <div className="text-center">
-              <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--theme-font-heading)" }}>
-                Waiting for content
-              </h2>
-              <p>The presenter has not shared any content yet.</p>
-            </div>
-          ) : (
-            <Card
-              className="w-full max-w-2xl shadow-lg transition-colors duration-300"
-              style={{
-                borderColor: "var(--theme-border)",
-                borderRadius: "var(--theme-radius)",
-              }}
-            >
-              <CardContent className="p-6">{renderPollParticipation(currentSlide)}</CardContent>
-              <CardFooter
-                className="flex justify-between p-4"
-                style={{
-                  borderTopColor: "var(--theme-border)",
-                  borderTopWidth: "1px",
-                }}
-              >
-                <div className="text-sm text-muted-foreground">
-                  Question {currentSlideIndex + 1} of {sessionData.content.length}
-                </div>
-                <Button
-                  onClick={() => submitResponse(currentSlide.id)}
-                  disabled={!responses[currentSlide.id] || isSubmitting || isCurrentPollSubmitted}
-                  style={{
-                    backgroundColor: isCurrentPollSubmitted ? undefined : "var(--theme-primary)",
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">Delete</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the poll and all associated data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    try {
+                      // await api.polls.deletePoll({ id: params.id }) // TODO: Fix this
+                      toast({
+                        title: "Poll deleted",
+                        description: "The poll has been deleted.",
+                      })
+                      router.push("/(dashboard)")
+                    } catch (error) {
+                      toast({
+                        title: "Error deleting poll",
+                        description: "Please try again.",
+                        variant: "destructive",
+                      })
+                    }
                   }}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
-                    </>
-                  ) : isCurrentPollSubmitted ? (
-                    "Submitted"
-                  ) : (
-                    "Submit Answer"
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-        </main>
-      </div>
-    </ThemeWrapper>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button onClick={() => router.push(`/(dashboard)/polls/${params.id}/results`)}>View Results</Button>
+        </CardFooter>
+      </Card>
+    </div>
   )
 }
+
+export default ParticipatePage
