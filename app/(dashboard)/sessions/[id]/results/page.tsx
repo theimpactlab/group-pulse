@@ -598,7 +598,9 @@ export default function ResultsPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-lg">{totalPoints} pts</div>
-                    <div className="text-sm text-muted-foreground">Avg: {averagePoints.toFixed(1)} pts</div>
+                    <div className="text-sm text-muted-foreground">
+                      Avg: {averagePoints.toFixed(1)} pts per participant
+                    </div>
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">

@@ -294,18 +294,19 @@ export default function PublicResultsPage() {
             const maxAvg = Math.max(...Object.values(averagePoints))
 
             return (
-              <div key={option.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="flex-grow">
+              <div key={option.id} className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-center">
                   <p className="font-medium">{option.text}</p>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                    <div
-                      className="bg-primary h-2 rounded-full"
-                      style={{ width: `${maxAvg > 0 ? Math.round((avgPoints / maxAvg) * 100) : 0}%` }}
-                    ></div>
+                  <div className="text-right">
+                    <div className="font-bold">{totalPoints} pts</div>
+                    <div className="text-sm text-muted-foreground">Avg: {avgPoints.toFixed(1)} pts per participant</div>
                   </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Avg: {avgPoints.toFixed(1)} | Total: {totalPoints}
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                  <div
+                    className="bg-primary h-2 rounded-full"
+                    style={{ width: `${maxAvg > 0 ? Math.round((avgPoints / maxAvg) * 100) : 0}%` }}
+                  ></div>
                 </div>
               </div>
             )
