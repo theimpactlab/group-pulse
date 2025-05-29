@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, BarChart3, PieChart, CloudRain, MessageSquare, SlidersHorizontal } from "lucide-react"
+import { Loader2, BarChart3, PieChart, CloudRain, MessageSquare, SlidersHorizontal, Coins } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 import type { PollType } from "@/types/poll-types"
 
@@ -232,9 +232,78 @@ export default function PublicResultsPage() {
         return renderQuizResults(poll, pollResponses)
       case "image-choice":
         return renderImageChoiceResults(poll, pollResponses)
+      case "points-allocation":
+        return renderPointsAllocationResults(poll, pollResponses)
       default:
         return <div>Unsupported poll type</div>
     }
+  }
+
+  const renderPointsAllocationResults = (poll: any, pollResponses: any[]) => {
+    // Calculate total points allocated by each participant
+    const participantPoints: Record<string, number> = {}
+    pollResponses.forEach((response) => {
+      const participantName = response.participant_name || "Anonymous"
+      participantPoints[participantName] = Object.values(response.response).reduce(
+        (sum: any, points: any) => sum + points,
+        0,
+      )
+    })
+
+    // Calculate average points for each option
+    const optionPoints: Record<string, number> = {}
+    const optionCounts: Record<string, number> = {}
+    poll.data.options.forEach((option: any) => {
+      optionPoints[option.id] = 0
+      optionCounts[option.id] = 0
+    })
+
+    pollResponses.forEach((response) => {
+      Object.entries(response.response).forEach(([optionId, points]: any) => {
+        optionPoints[optionId] = (optionPoints[optionId] || 0) + points
+        optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
+      })
+    })
+
+    const averagePoints: Record<string, number> = {}
+    Object.keys(optionPoints).forEach((optionId) => {
+      averagePoints[optionId] = optionPoints[optionId] / pollResponses.length || 0
+    })
+
+    // Sort options by average points
+    const sortedOptions = [...poll.data.options].sort((a: any, b: any) => averagePoints[b.id] - averagePoints[a.id])
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+
+        <div className="space-y-3">
+          {sortedOptions.map((option: any) => {
+            const avgPoints = averagePoints[option.id] || 0
+            const totalPoints = optionPoints[option.id] || 0
+
+            return (
+              <div key={option.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className="flex-grow">
+                  <p className="font-medium">{option.text}</p>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                    <div
+                      className="bg-primary h-2 rounded-full"
+                      style={{ width: `${Math.min(100, (avgPoints / poll.data.maxPoints) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Avg: {avgPoints.toFixed(1)} | Total: {totalPoints}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <p className="text-sm text-muted-foreground">Total responses: {pollResponses.length}</p>
+      </div>
+    )
   }
 
   const renderMultipleChoiceResults = (poll: any, pollResponses: any[]) => {
@@ -752,6 +821,7 @@ export default function PublicResultsPage() {
                       {poll.type === "qa" && `Q&A: ${poll.data.title}`}
                       {poll.type === "quiz" && `Quiz: ${poll.data.question}`}
                       {poll.type === "image-choice" && `Image Choice: ${poll.data.question}`}
+                      {poll.type === "points-allocation" && `Points Allocation: ${poll.data.question}`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -766,6 +836,7 @@ export default function PublicResultsPage() {
                         {poll.type === "qa" && <MessageSquare className="h-5 w-5 text-cyan-500" />}
                         {poll.type === "quiz" && <BarChart3 className="h-5 w-5 text-indigo-500" />}
                         {poll.type === "image-choice" && <PieChart className="h-5 w-5 text-pink-500" />}
+                        {poll.type === "points-allocation" && <Coins className="h-5 w-5 text-orange-500" />}
                         <span className="capitalize">{poll.type.replace(/-/g, " ")}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">{getResponseCountForPoll(poll.id)} responses</div>

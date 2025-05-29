@@ -120,6 +120,22 @@ export function createPollTemplate(type: string): PollType {
           ],
         },
       }
+    case "points-allocation":
+      return {
+        id,
+        type: "points-allocation",
+        data: {
+          question: "How would you allocate 100 points among these options?",
+          totalPoints: 100,
+          options: [
+            { id: uuidv4(), text: "Option 1" },
+            { id: uuidv4(), text: "Option 2" },
+            { id: uuidv4(), text: "Option 3" },
+          ],
+          minPointsPerOption: 0,
+          maxPointsPerOption: 100,
+        },
+      }
     default:
       throw new Error(`Unknown poll type: ${type}`)
   }

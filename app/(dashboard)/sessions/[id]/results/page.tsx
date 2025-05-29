@@ -15,6 +15,7 @@ import {
   MessageSquare,
   RefreshCw,
   SlidersHorizontal,
+  Coins,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
@@ -121,6 +122,8 @@ export default function ResultsPage() {
         return renderQuizResults(poll, pollResponses)
       case "image-choice":
         return renderImageChoiceResults(poll, pollResponses)
+      case "points-allocation":
+        return renderPointsAllocationResults(poll, pollResponses)
       default:
         return <div>Unsupported poll type</div>
     }
@@ -517,6 +520,97 @@ export default function ResultsPage() {
     )
   }
 
+  const renderPointsAllocationResults = (poll: any, pollResponses: any[]) => {
+    // Calculate total points allocated and average per option
+    const optionTotals: Record<string, number> = {}
+    const optionCounts: Record<string, number> = {}
+
+    // Initialize
+    poll.data.options.forEach((option: any) => {
+      optionTotals[option.id] = 0
+      optionCounts[option.id] = 0
+    })
+
+    // Sum up points for each option
+    pollResponses.forEach((response) => {
+      if (typeof response.response === "object") {
+        Object.entries(response.response).forEach(([optionId, points]: any) => {
+          optionTotals[optionId] = (optionTotals[optionId] || 0) + points
+          if (points > 0) {
+            optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
+          }
+        })
+      }
+    })
+
+    // Calculate averages
+    const optionAverages: Record<string, number> = {}
+    Object.keys(optionTotals).forEach((optionId) => {
+      optionAverages[optionId] = optionCounts[optionId] > 0 ? optionTotals[optionId] / pollResponses.length : 0
+    })
+
+    // Sort options by total points
+    const sortedOptions = [...poll.data.options].sort((a: any, b: any) => {
+      return optionTotals[b.id] - optionTotals[a.id]
+    })
+
+    const totalPointsAllocated = Object.values(optionTotals).reduce((sum: any, points: any) => sum + points, 0)
+    const maxPoints = Math.max(...(Object.values(optionTotals) as number[]))
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="p-4 bg-amber-50 rounded-lg">
+            <p className="text-sm text-amber-600 mb-1">Total Points Allocated</p>
+            <p className="text-2xl font-bold text-amber-700">{totalPointsAllocated}</p>
+          </div>
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-600 mb-1">Average per Participant</p>
+            <p className="text-2xl font-bold text-blue-700">
+              {pollResponses.length > 0 ? Math.round(totalPointsAllocated / pollResponses.length) : 0}
+            </p>
+          </div>
+          <div className="p-4 bg-purple-50 rounded-lg">
+            <p className="text-sm text-purple-600 mb-1">Responses</p>
+            <p className="text-2xl font-bold text-purple-700">{pollResponses.length}</p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {sortedOptions.map((option: any, index: number) => {
+            const totalPoints = optionTotals[option.id] || 0
+            const averagePoints = optionAverages[option.id] || 0
+            const percentage = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0
+
+            return (
+              <div key={option.id} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center text-sm font-bold">
+                      {index + 1}
+                    </div>
+                    <span className="font-medium">{option.text}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-lg">{totalPoints} pts</div>
+                    <div className="text-sm text-muted-foreground">Avg: {averagePoints.toFixed(1)} pts</div>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="bg-amber-500 h-3 rounded-full" style={{ width: `${percentage}%` }}></div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <p className="text-sm text-muted-foreground">Total responses: {pollResponses.length}</p>
+      </div>
+    )
+  }
+
   const renderSliderResults = (poll: any, pollResponses: any[]) => {
     // Calculate average position
     const sum = pollResponses.reduce((acc, response) => acc + response.response, 0)
@@ -813,6 +907,7 @@ export default function ResultsPage() {
                       {poll.type === "qa" && `Q&A: ${poll.data.title}`}
                       {poll.type === "quiz" && `Quiz: ${poll.data.question}`}
                       {poll.type === "image-choice" && `Image Choice: ${poll.data.question}`}
+                      {poll.type === "points-allocation" && `100 Points: ${poll.data.question}`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -827,6 +922,7 @@ export default function ResultsPage() {
                         {poll.type === "qa" && <MessageSquare className="h-5 w-5 text-cyan-500" />}
                         {poll.type === "quiz" && <BarChart3 className="h-5 w-5 text-indigo-500" />}
                         {poll.type === "image-choice" && <PieChart className="h-5 w-5 text-pink-500" />}
+                        {poll.type === "points-allocation" && <Coins className="h-5 w-5 text-amber-500" />}
                         <span className="capitalize">{poll.type.replace(/-/g, " ")}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">{getResponseCountForPoll(poll.id)} responses</div>

@@ -110,6 +110,21 @@ export interface ImageChoicePoll extends InteractiveElement {
   }
 }
 
+// 100 Points Poll (Point allocation)
+export interface PointsAllocationPoll extends InteractiveElement {
+  type: "points-allocation"
+  data: {
+    question: string
+    totalPoints: number
+    options: {
+      id: string
+      text: string
+    }[]
+    minPointsPerOption?: number
+    maxPointsPerOption?: number
+  }
+}
+
 // Union type of all poll types
 export type PollType =
   | MultipleChoicePoll
@@ -121,6 +136,7 @@ export type PollType =
   | QAPoll
   | QuizPoll
   | ImageChoicePoll
+  | PointsAllocationPoll
 
 // Poll response types
 export interface PollResponse {
