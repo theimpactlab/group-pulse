@@ -5,7 +5,21 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, BarChart3, Calendar, Plus, MessageSquare, CloudRain, Scale, ListOrdered, HelpCircle, BrainCircuit, ImageIcon, SlidersHorizontal, CircleDollarSign } from 'lucide-react'
+import {
+  Loader2,
+  BarChart3,
+  Calendar,
+  Plus,
+  MessageSquare,
+  CloudRain,
+  Scale,
+  ListOrdered,
+  HelpCircle,
+  BrainCircuit,
+  ImageIcon,
+  SlidersHorizontal,
+  CircleDollarSign,
+} from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -225,4 +239,160 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 {stats.recentSessions.length > 0 ? (
-                  <div className="space-y-4
+                  <div className="space-y-4">
+                    {stats.recentSessions.map((session: any) => (
+                      <div key={session.id} className="flex items-center justify-between p-4 border rounded-md">
+                        <div>
+                          <h3 className="font-medium">{session.title}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full ${
+                                session.status === "active"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {session.status}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(session.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/sessions/${session.id}`}>View</Link>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No sessions created yet</p>
+                    <Button className="mt-4" asChild>
+                      <Link href="/create-session">Create Your First Session</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+              {stats.totalSessions > 5 && (
+                <CardFooter>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href="/sessions">View All Sessions</Link>
+                  </Button>
+                </CardFooter>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="poll-types">
+            <Card>
+              <CardHeader>
+                <CardTitle>Interactive Poll Types</CardTitle>
+                <CardDescription>Explore the different types of polls you can create for your sessions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {pollTypes.map((type) => (
+                    <div key={type.id} className={`p-4 rounded-lg border ${type.bgColor}`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`${type.color} mt-1`}>
+                          <type.icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{type.name}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">{type.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button asChild className="w-full">
+                  <Link href="/create-session">Create a Session with These Poll Types</Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="getting-started">
+            <Card>
+              <CardHeader>
+                <CardTitle>Getting Started with GroupPulse</CardTitle>
+                <CardDescription>Follow these steps to create engaging interactive sessions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4 p-4 border rounded-md">
+                    <div className="bg-primary/10 text-primary rounded-full p-2 flex-shrink-0">
+                      <span className="font-bold">1</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Create a new session</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Start by creating a new session and giving it a title and optional description.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 border rounded-md">
+                    <div className="bg-primary/10 text-primary rounded-full p-2 flex-shrink-0">
+                      <span className="font-bold">2</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Add interactive polls</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Choose from multiple poll types to engage your audience in different ways.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 border rounded-md">
+                    <div className="bg-primary/10 text-primary rounded-full p-2 flex-shrink-0">
+                      <span className="font-bold">3</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Share with participants</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Share the session link or QR code with your audience to let them join and participate.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 border rounded-md">
+                    <div className="bg-primary/10 text-primary rounded-full p-2 flex-shrink-0">
+                      <span className="font-bold">4</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Present and collect responses</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Present your session and watch as responses come in real-time.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4 p-4 border rounded-md">
+                    <div className="bg-primary/10 text-primary rounded-full p-2 flex-shrink-0">
+                      <span className="font-bold">5</span>
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Analyze results</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        View and analyze the results to gain insights from your audience's responses.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button asChild className="w-full">
+                  <Link href="/create-session">Start Creating</Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  )
+}
