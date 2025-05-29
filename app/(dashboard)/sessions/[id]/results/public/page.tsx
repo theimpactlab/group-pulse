@@ -241,10 +241,13 @@ export default function PublicResultsPage() {
 
   const renderPointsAllocationResults = (poll: any, pollResponses: any[]) => {
     console.log("Public - Poll responses for points allocation:", pollResponses)
+    console.log("Public - Poll options:", poll.data.options)
 
     // Calculate average points for each option
     const optionPoints: Record<string, number> = {}
     const optionCounts: Record<string, number> = {}
+
+    // Initialize with actual option IDs
     poll.data.options.forEach((option: any) => {
       optionPoints[option.id] = 0
       optionCounts[option.id] = 0
@@ -265,15 +268,34 @@ export default function PublicResultsPage() {
       console.log("Public - Response data:", responseData)
 
       if (responseData && typeof responseData === "object") {
-        Object.entries(responseData).forEach(([optionId, points]: any) => {
-          console.log(`Public - Option ${optionId}: ${points} points`)
-          optionPoints[optionId] = (optionPoints[optionId] || 0) + points
-          optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
+        Object.entries(responseData).forEach(([key, points]: any) => {
+          console.log(`Public - Processing key ${key}: ${points} points`)
+
+          // Handle both numeric indices and actual option IDs
+          let optionId = key
+
+          // If the key is numeric, map it to the actual option ID
+          if (!isNaN(Number(key))) {
+            const optionIndex = Number(key)
+            if (poll.data.options[optionIndex]) {
+              optionId = poll.data.options[optionIndex].id
+              console.log(`Public - Mapped index ${optionIndex} to option ID ${optionId}`)
+            }
+          }
+
+          // Only process if this is a valid option ID
+          if (optionPoints.hasOwnProperty(optionId)) {
+            console.log(`Public - Adding ${points} points to option ${optionId}`)
+            optionPoints[optionId] = (optionPoints[optionId] || 0) + points
+            optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
+          } else {
+            console.log(`Public - Skipping unknown option ID: ${optionId}`)
+          }
         })
       }
     })
 
-    console.log("Public - Option points:", optionPoints)
+    console.log("Public - Final option points:", optionPoints)
 
     const averagePoints: Record<string, number> = {}
     Object.keys(optionPoints).forEach((optionId) => {
