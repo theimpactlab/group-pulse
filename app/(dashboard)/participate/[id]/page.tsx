@@ -80,7 +80,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
       const currentPoll = getCurrentPoll()
       const { error } = await supabase.from("responses").insert({
         session_id: session.id,
-        poll_id: currentPoll.id,
+        poll_id: currentPoll.id || `poll_${Date.now()}`,
         data: responseData,
         created_at: new Date().toISOString(),
       })
@@ -116,6 +116,22 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     return session.content[pollIndex] || session.content[0]
   }
 
+  // Helper function to safely get option text
+  const getOptionText = (option: any): string => {
+    if (typeof option === "string") return option
+    if (option && typeof option === "object" && option.text) return option.text
+    if (option && typeof option === "object" && option.id) return option.id
+    return String(option || "")
+  }
+
+  // Helper function to safely get option value
+  const getOptionValue = (option: any): string => {
+    if (typeof option === "string") return option
+    if (option && typeof option === "object" && option.id) return option.id
+    if (option && typeof option === "object" && option.text) return option.text
+    return String(option || "")
+  }
+
   const renderPollContent = () => {
     const currentPoll = getCurrentPoll()
 
@@ -128,41 +144,50 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
       )
     }
 
-    const pollData = currentPoll.data
+    const pollData = currentPoll.data || {}
 
     switch (currentPoll.type) {
       case "multiple-choice":
+        const options = pollData.options || []
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question}</h3>
+            <h3 className="text-lg font-medium">{pollData.question || "Multiple Choice Question"}</h3>
             {pollData.allowMultipleAnswers ? (
               <div className="space-y-2">
-                {pollData.options?.map((option: any, index: number) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`option-${index}`}
-                      checked={response.choices?.includes(option.text) || false}
-                      onCheckedChange={(checked) => {
-                        const currentChoices = response.choices || []
-                        if (checked) {
-                          setResponse({ choices: [...currentChoices, option.text] })
-                        } else {
-                          setResponse({ choices: currentChoices.filter((choice: string) => choice !== option.text) })
-                        }
-                      }}
-                    />
-                    <Label htmlFor={`option-${index}`}>{option.text}</Label>
-                  </div>
-                ))}
+                {options.map((option: any, index: number) => {
+                  const optionText = getOptionText(option)
+                  const optionValue = getOptionValue(option)
+                  return (
+                    <div key={index} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`option-${index}`}
+                        checked={response.choices?.includes(optionValue) || false}
+                        onCheckedChange={(checked) => {
+                          const currentChoices = response.choices || []
+                          if (checked) {
+                            setResponse({ choices: [...currentChoices, optionValue] })
+                          } else {
+                            setResponse({ choices: currentChoices.filter((choice: string) => choice !== optionValue) })
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`option-${index}`}>{optionText}</Label>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <RadioGroup value={response.choice || ""} onValueChange={(value) => setResponse({ choice: value })}>
-                {pollData.options?.map((option: any, index: number) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <RadioGroupItem value={option.text} id={`option-${index}`} />
-                    <Label htmlFor={`option-${index}`}>{option.text}</Label>
-                  </div>
-                ))}
+                {options.map((option: any, index: number) => {
+                  const optionText = getOptionText(option)
+                  const optionValue = getOptionValue(option)
+                  return (
+                    <div key={index} className="flex items-center space-x-2">
+                      <RadioGroupItem value={optionValue} id={`option-${index}`} />
+                      <Label htmlFor={`option-${index}`}>{optionText}</Label>
+                    </div>
+                  )
+                })}
               </RadioGroup>
             )}
             <Button
@@ -178,7 +203,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
       case "word-cloud":
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question}</h3>
+            <h3 className="text-lg font-medium">{pollData.question || "Word Cloud"}</h3>
             <div>
               <Label htmlFor="word-input">Enter a word or phrase</Label>
               <Input
@@ -202,7 +227,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
       case "open-ended":
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question}</h3>
+            <h3 className="text-lg font-medium">{pollData.question || "Open Ended Question"}</h3>
             <div>
               <Label htmlFor="text-input">Your response</Label>
               <Textarea
@@ -211,7 +236,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
                 onChange={(e) => setResponse({ text: e.target.value })}
                 placeholder="Type your response..."
                 rows={4}
-                maxLength={pollData.maxResponseLength}
+                maxLength={pollData.maxResponseLength || 1000}
               />
             </div>
             <Button
@@ -227,7 +252,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
       case "scale":
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question}</h3>
+            <h3 className="text-lg font-medium">{pollData.question || "Scale Question"}</h3>
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>{pollData.minLabel || "Min"}</span>
@@ -251,117 +276,17 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
           </div>
         )
 
-      case "ranking":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question}</h3>
-            <p className="text-sm text-muted-foreground">Drag to reorder the options from most to least preferred</p>
-            <div className="space-y-2">
-              {pollData.options?.map((option: any, index: number) => (
-                <div key={index} className="p-3 border rounded-md bg-background">
-                  <span className="font-medium">{index + 1}.</span> {option.text}
-                </div>
-              ))}
-            </div>
-            <Button
-              onClick={() => handleSubmitResponse({ ranking: pollData.options?.map((o: any) => o.text) })}
-              disabled={submitting}
-              className="w-full"
-            >
-              {submitting ? "Submitting..." : "Submit Ranking"}
-            </Button>
-          </div>
-        )
-
       case "points-allocation":
         return <PointsAllocationParticipant poll={currentPoll} onSubmit={handleSubmitResponse} disabled={submitting} />
-
-      case "qa":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.title}</h3>
-            {pollData.description && <p className="text-muted-foreground">{pollData.description}</p>}
-            <div>
-              <Label htmlFor="question-input">Ask a question</Label>
-              <Textarea
-                id="question-input"
-                value={response.question || ""}
-                onChange={(e) => setResponse({ question: e.target.value })}
-                placeholder="Type your question..."
-                rows={3}
-              />
-            </div>
-            <Button
-              onClick={() => handleSubmitResponse(response)}
-              disabled={!response.question?.trim() || submitting}
-              className="w-full"
-            >
-              {submitting ? "Submitting..." : "Submit Question"}
-            </Button>
-          </div>
-        )
-
-      case "quiz":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question}</h3>
-            <RadioGroup value={response.choice || ""} onValueChange={(value) => setResponse({ choice: value })}>
-              {pollData.options?.map((option: any, index: number) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option.text} id={`quiz-option-${index}`} />
-                  <Label htmlFor={`quiz-option-${index}`}>{option.text}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-            <Button
-              onClick={() => handleSubmitResponse(response)}
-              disabled={!response.choice || submitting}
-              className="w-full"
-            >
-              {submitting ? "Submitting..." : "Submit Answer"}
-            </Button>
-          </div>
-        )
-
-      case "image-choice":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question}</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {pollData.options?.map((option: any, index: number) => (
-                <div
-                  key={index}
-                  className={`cursor-pointer border-2 rounded-lg p-2 transition-colors ${
-                    response.choice === option.caption
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                  onClick={() => setResponse({ choice: option.caption })}
-                >
-                  <img
-                    src={option.imageUrl || "/placeholder.svg"}
-                    alt={option.caption || `Option ${index + 1}`}
-                    className="w-full h-32 object-cover rounded"
-                  />
-                  {option.caption && <p className="text-center mt-2 text-sm">{option.caption}</p>}
-                </div>
-              ))}
-            </div>
-            <Button
-              onClick={() => handleSubmitResponse(response)}
-              disabled={!response.choice || submitting}
-              className="w-full"
-            >
-              {submitting ? "Submitting..." : "Submit"}
-            </Button>
-          </div>
-        )
 
       default:
         return (
           <div className="text-center py-8">
-            <h3 className="text-lg font-medium mb-2">Unknown poll type: {currentPoll.type}</h3>
-            <p className="text-muted-foreground">This poll type is not supported yet.</p>
+            <h3 className="text-lg font-medium mb-2">Poll Type: {currentPoll.type}</h3>
+            <p className="text-muted-foreground">This poll type is not yet supported in the participant view.</p>
+            <div className="mt-4 p-4 bg-gray-100 rounded text-left">
+              <pre className="text-xs overflow-auto">{JSON.stringify(currentPoll, null, 2)}</pre>
+            </div>
           </div>
         )
     }
