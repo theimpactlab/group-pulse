@@ -240,20 +240,7 @@ export default function PublicResultsPage() {
   }
 
   const renderPointsAllocationResults = (poll: any, pollResponses: any[]) => {
-    // Calculate total points allocated by each participant
-    const participantPoints: Record<string, number> = {}
-    pollResponses.forEach((response) => {
-      const participantName = response.participant_name || "Anonymous"
-      // Handle both formats: direct points object or wrapped in allocation
-      const responseData = response.response?.allocation || response.response
-
-      if (typeof responseData === "object") {
-        participantPoints[participantName] = Object.values(responseData).reduce(
-          (sum: any, points: any) => sum + points,
-          0,
-        )
-      }
-    })
+    console.log("Public - Poll responses for points allocation:", pollResponses)
 
     // Calculate average points for each option
     const optionPoints: Record<string, number> = {}
@@ -264,21 +251,36 @@ export default function PublicResultsPage() {
     })
 
     pollResponses.forEach((response) => {
-      // Handle both formats: direct points object or wrapped in allocation
-      const responseData = response.response?.allocation || response.response
+      console.log("Public - Processing response:", response)
 
-      if (typeof responseData === "object") {
+      // Handle multiple possible response formats
+      let responseData = null
+
+      if (response.response?.allocation) {
+        responseData = response.response.allocation
+      } else if (typeof response.response === "object" && response.response !== null) {
+        responseData = response.response
+      }
+
+      console.log("Public - Response data:", responseData)
+
+      if (responseData && typeof responseData === "object") {
         Object.entries(responseData).forEach(([optionId, points]: any) => {
+          console.log(`Public - Option ${optionId}: ${points} points`)
           optionPoints[optionId] = (optionPoints[optionId] || 0) + points
           optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
         })
       }
     })
 
+    console.log("Public - Option points:", optionPoints)
+
     const averagePoints: Record<string, number> = {}
     Object.keys(optionPoints).forEach((optionId) => {
       averagePoints[optionId] = optionPoints[optionId] / pollResponses.length || 0
     })
+
+    console.log("Public - Average points:", averagePoints)
 
     // Sort options by average points
     const sortedOptions = [...poll.data.options].sort((a: any, b: any) => averagePoints[b.id] - averagePoints[a.id])

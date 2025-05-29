@@ -521,6 +521,8 @@ export default function ResultsPage() {
   }
 
   const renderPointsAllocationResults = (poll: any, pollResponses: any[]) => {
+    console.log("Poll responses for points allocation:", pollResponses)
+
     // Calculate total points allocated and average per option
     const optionTotals: Record<string, number> = {}
     const optionCounts: Record<string, number> = {}
@@ -533,11 +535,22 @@ export default function ResultsPage() {
 
     // Sum up points for each option
     pollResponses.forEach((response) => {
-      // Handle both formats: direct points object or wrapped in allocation
-      const responseData = response.response?.allocation || response.response
+      console.log("Processing response:", response)
 
-      if (typeof responseData === "object") {
+      // Handle multiple possible response formats
+      let responseData = null
+
+      if (response.response?.allocation) {
+        responseData = response.response.allocation
+      } else if (typeof response.response === "object" && response.response !== null) {
+        responseData = response.response
+      }
+
+      console.log("Response data:", responseData)
+
+      if (responseData && typeof responseData === "object") {
         Object.entries(responseData).forEach(([optionId, points]: any) => {
+          console.log(`Option ${optionId}: ${points} points`)
           optionTotals[optionId] = (optionTotals[optionId] || 0) + points
           if (points > 0) {
             optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
@@ -546,11 +559,16 @@ export default function ResultsPage() {
       }
     })
 
+    console.log("Option totals:", optionTotals)
+    console.log("Option counts:", optionCounts)
+
     // Calculate averages
     const optionAverages: Record<string, number> = {}
     Object.keys(optionTotals).forEach((optionId) => {
-      optionAverages[optionId] = optionCounts[optionId] > 0 ? optionTotals[optionId] / pollResponses.length : 0
+      optionAverages[optionId] = pollResponses.length > 0 ? optionTotals[optionId] / pollResponses.length : 0
     })
+
+    console.log("Option averages:", optionAverages)
 
     // Sort options by total points
     const sortedOptions = [...poll.data.options].sort((a: any, b: any) => {
