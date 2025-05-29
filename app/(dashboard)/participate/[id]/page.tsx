@@ -9,29 +9,23 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
 import { PointsAllocationParticipant } from "@/components/poll-participants/points-allocation-participant"
 
-interface Poll {
-  id: string
-  title: string
-  description?: string
-  type: string
-  data: any
-  session_id: string
-}
-
 interface Session {
   id: string
   title: string
+  description?: string
   status: "draft" | "active" | "complete"
   code: string
+  content: any[]
+  current_poll_index?: number
 }
 
 export default function ParticipatePage({ params }: { params: { id: string } }) {
   const [session, setSession] = useState<Session | null>(null)
-  const [currentPoll, setCurrentPoll] = useState<Poll | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [response, setResponse] = useState<any>({})
@@ -39,40 +33,38 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
   const { toast } = useToast()
 
   useEffect(() => {
-    fetchSessionAndPoll()
+    fetchSession()
   }, [params.id])
 
-  const fetchSessionAndPoll = async () => {
+  const fetchSession = async () => {
     try {
-      // First get the session
-      const { data: sessionData, error: sessionError } = await supabase
+      // Get the session by ID or code
+      let { data: sessionData, error: sessionError } = await supabase
         .from("sessions")
         .select("*")
         .eq("id", params.id)
         .single()
 
-      if (sessionError) throw sessionError
+      // If not found by ID, try by code
+      if (sessionError && sessionError.code === "PGRST116") {
+        const { data: codeData, error: codeError } = await supabase
+          .from("sessions")
+          .select("*")
+          .eq("code", params.id.toUpperCase())
+          .single()
 
-      setSession(sessionData)
-
-      // Then get the current active poll for this session
-      const { data: pollData, error: pollError } = await supabase
-        .from("polls")
-        .select("*")
-        .eq("session_id", params.id)
-        .eq("is_active", true)
-        .single()
-
-      if (pollError && pollError.code !== "PGRST116") {
-        throw pollError
+        if (codeError) throw codeError
+        sessionData = codeData
+      } else if (sessionError) {
+        throw sessionError
       }
 
-      setCurrentPoll(pollData)
+      setSession(sessionData)
     } catch (error) {
-      console.error("Error fetching session/poll:", error)
+      console.error("Error fetching session:", error)
       toast({
         title: "Error",
-        description: "Failed to load the session. Please try again.",
+        description: "Failed to load the session. Please check the session code and try again.",
         variant: "destructive",
       })
     } finally {
@@ -81,14 +73,16 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
   }
 
   const handleSubmitResponse = async (responseData: any) => {
-    if (!currentPoll) return
+    if (!session || !getCurrentPoll()) return
 
     setSubmitting(true)
     try {
+      const currentPoll = getCurrentPoll()
       const { error } = await supabase.from("responses").insert({
+        session_id: session.id,
         poll_id: currentPoll.id,
-        session_id: params.id,
         data: responseData,
+        created_at: new Date().toISOString(),
       })
 
       if (error) throw error
@@ -112,7 +106,19 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     }
   }
 
+  const getCurrentPoll = () => {
+    if (!session?.content || !Array.isArray(session.content) || session.content.length === 0) {
+      return null
+    }
+
+    // If there's a current_poll_index, use that, otherwise use the first poll
+    const pollIndex = session.current_poll_index ?? 0
+    return session.content[pollIndex] || session.content[0]
+  }
+
   const renderPollContent = () => {
+    const currentPoll = getCurrentPoll()
+
     if (!currentPoll) {
       return (
         <div className="text-center py-8">
@@ -129,17 +135,39 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{pollData.question}</h3>
-            <RadioGroup value={response.choice || ""} onValueChange={(value) => setResponse({ choice: value })}>
-              {pollData.options?.map((option: string, index: number) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option} id={`option-${index}`} />
-                  <Label htmlFor={`option-${index}`}>{option}</Label>
-                </div>
-              ))}
-            </RadioGroup>
+            {pollData.allowMultipleAnswers ? (
+              <div className="space-y-2">
+                {pollData.options?.map((option: any, index: number) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`option-${index}`}
+                      checked={response.choices?.includes(option.text) || false}
+                      onCheckedChange={(checked) => {
+                        const currentChoices = response.choices || []
+                        if (checked) {
+                          setResponse({ choices: [...currentChoices, option.text] })
+                        } else {
+                          setResponse({ choices: currentChoices.filter((choice: string) => choice !== option.text) })
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`option-${index}`}>{option.text}</Label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <RadioGroup value={response.choice || ""} onValueChange={(value) => setResponse({ choice: value })}>
+                {pollData.options?.map((option: any, index: number) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <RadioGroupItem value={option.text} id={`option-${index}`} />
+                    <Label htmlFor={`option-${index}`}>{option.text}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
             <Button
               onClick={() => handleSubmitResponse(response)}
-              disabled={!response.choice || submitting}
+              disabled={(!response.choice && !response.choices?.length) || submitting}
               className="w-full"
             >
               {submitting ? "Submitting..." : "Submit"}
@@ -158,7 +186,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
                 value={response.word || ""}
                 onChange={(e) => setResponse({ word: e.target.value })}
                 placeholder="Type your response..."
-                maxLength={50}
+                maxLength={pollData.maxEntries || 50}
               />
             </div>
             <Button
@@ -183,6 +211,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
                 onChange={(e) => setResponse({ text: e.target.value })}
                 placeholder="Type your response..."
                 rows={4}
+                maxLength={pollData.maxResponseLength}
               />
             </div>
             <Button
@@ -209,7 +238,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
                 onValueChange={(value) => setResponse({ value: value[0] })}
                 min={pollData.min || 1}
                 max={pollData.max || 10}
-                step={1}
+                step={pollData.step || 1}
                 className="w-full"
               />
               <div className="text-center">
@@ -222,13 +251,116 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
           </div>
         )
 
+      case "ranking":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">{pollData.question}</h3>
+            <p className="text-sm text-muted-foreground">Drag to reorder the options from most to least preferred</p>
+            <div className="space-y-2">
+              {pollData.options?.map((option: any, index: number) => (
+                <div key={index} className="p-3 border rounded-md bg-background">
+                  <span className="font-medium">{index + 1}.</span> {option.text}
+                </div>
+              ))}
+            </div>
+            <Button
+              onClick={() => handleSubmitResponse({ ranking: pollData.options?.map((o: any) => o.text) })}
+              disabled={submitting}
+              className="w-full"
+            >
+              {submitting ? "Submitting..." : "Submit Ranking"}
+            </Button>
+          </div>
+        )
+
       case "points-allocation":
         return <PointsAllocationParticipant poll={currentPoll} onSubmit={handleSubmitResponse} disabled={submitting} />
+
+      case "qa":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">{pollData.title}</h3>
+            {pollData.description && <p className="text-muted-foreground">{pollData.description}</p>}
+            <div>
+              <Label htmlFor="question-input">Ask a question</Label>
+              <Textarea
+                id="question-input"
+                value={response.question || ""}
+                onChange={(e) => setResponse({ question: e.target.value })}
+                placeholder="Type your question..."
+                rows={3}
+              />
+            </div>
+            <Button
+              onClick={() => handleSubmitResponse(response)}
+              disabled={!response.question?.trim() || submitting}
+              className="w-full"
+            >
+              {submitting ? "Submitting..." : "Submit Question"}
+            </Button>
+          </div>
+        )
+
+      case "quiz":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">{pollData.question}</h3>
+            <RadioGroup value={response.choice || ""} onValueChange={(value) => setResponse({ choice: value })}>
+              {pollData.options?.map((option: any, index: number) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.text} id={`quiz-option-${index}`} />
+                  <Label htmlFor={`quiz-option-${index}`}>{option.text}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+            <Button
+              onClick={() => handleSubmitResponse(response)}
+              disabled={!response.choice || submitting}
+              className="w-full"
+            >
+              {submitting ? "Submitting..." : "Submit Answer"}
+            </Button>
+          </div>
+        )
+
+      case "image-choice":
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">{pollData.question}</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {pollData.options?.map((option: any, index: number) => (
+                <div
+                  key={index}
+                  className={`cursor-pointer border-2 rounded-lg p-2 transition-colors ${
+                    response.choice === option.caption
+                      ? "border-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                  onClick={() => setResponse({ choice: option.caption })}
+                >
+                  <img
+                    src={option.imageUrl || "/placeholder.svg"}
+                    alt={option.caption || `Option ${index + 1}`}
+                    className="w-full h-32 object-cover rounded"
+                  />
+                  {option.caption && <p className="text-center mt-2 text-sm">{option.caption}</p>}
+                </div>
+              ))}
+            </div>
+            <Button
+              onClick={() => handleSubmitResponse(response)}
+              disabled={!response.choice || submitting}
+              className="w-full"
+            >
+              {submitting ? "Submitting..." : "Submit"}
+            </Button>
+          </div>
+        )
 
       default:
         return (
           <div className="text-center py-8">
-            <h3 className="text-lg font-medium mb-2">Unknown poll type</h3>
+            <h3 className="text-lg font-medium mb-2">Unknown poll type: {currentPoll.type}</h3>
             <p className="text-muted-foreground">This poll type is not supported yet.</p>
           </div>
         )
