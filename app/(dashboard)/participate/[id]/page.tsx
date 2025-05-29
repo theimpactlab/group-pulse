@@ -13,12 +13,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
 import { PointsAllocationParticipant } from "@/components/poll-participants/points-allocation-participant"
+import { SimpleTestComponent } from "@/components/poll-participants/simple-test-component"
 
 export default function ParticipatePage({ params }: { params: { id: string } }) {
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [response, setResponse] = useState<any>({})
+  const [useTestComponent, setUseTestComponent] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -264,7 +266,32 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
         )
 
       case "points-allocation":
-        return <PointsAllocationParticipant poll={currentPoll} onSubmit={handleSubmitResponse} disabled={submitting} />
+        return (
+          <div className="space-y-4">
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={useTestComponent ? "outline" : "default"}
+                onClick={() => setUseTestComponent(false)}
+                size="sm"
+              >
+                Use Points Component
+              </Button>
+              <Button
+                variant={useTestComponent ? "default" : "outline"}
+                onClick={() => setUseTestComponent(true)}
+                size="sm"
+              >
+                Use Test Component
+              </Button>
+            </div>
+
+            {useTestComponent ? (
+              <SimpleTestComponent onSubmit={handleSubmitResponse} />
+            ) : (
+              <PointsAllocationParticipant poll={currentPoll} onSubmit={handleSubmitResponse} disabled={submitting} />
+            )}
+          </div>
+        )
 
       default:
         return (

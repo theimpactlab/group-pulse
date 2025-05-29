@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,31 +20,34 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
   const rawOptions = poll?.data?.options || []
   const totalPoints = poll?.data?.totalPoints || 100
 
-  // Convert options to a simple format
-  const options = rawOptions.map((opt: any, index: number) => {
-    if (typeof opt === "string") {
-      return { id: String(index), text: opt }
-    }
-    return {
-      id: String(index),
-      text: opt?.text || opt?.id || `Option ${index + 1}`,
-    }
-  })
+  // Memoize options to prevent infinite re-renders
+  const options = useMemo(() => {
+    return rawOptions.map((opt: any, index: number) => {
+      if (typeof opt === "string") {
+        return { id: String(index), text: opt }
+      }
+      return {
+        id: String(index),
+        text: opt?.text || opt?.id || `Option ${index + 1}`,
+      }
+    })
+  }, [rawOptions])
 
   console.log("Processed options:", options)
 
   // Simple state for points
   const [points, setPoints] = useState<Record<string, number>>({})
 
-  // Initialize points
+  // Initialize points only when options change
   useEffect(() => {
+    console.log("useEffect triggered, options length:", options.length)
     const initial: Record<string, number> = {}
     options.forEach((opt) => {
       initial[opt.id] = 0
     })
     setPoints(initial)
     console.log("Initialized points:", initial)
-  }, [options])
+  }, [options.length]) // Only depend on length to avoid infinite loop
 
   // Calculate total allocated
   const totalAllocated = Object.values(points).reduce((sum, val) => sum + val, 0)
@@ -54,10 +57,12 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
   const handleChange = (id: string, value: string) => {
     console.log("Input change:", id, value)
     try {
-      const numValue = Number.parseInt(value) || 0
-      const newPoints = { ...points, [id]: numValue }
-      setPoints(newPoints)
-      console.log("Updated points:", newPoints)
+      const numValue = Math.max(0, Number.parseInt(value) || 0)
+      setPoints((prev) => ({
+        ...prev,
+        [id]: numValue,
+      }))
+      console.log("Updated points for", id, "to", numValue)
     } catch (err) {
       console.error("Error updating points:", err)
     }
@@ -91,15 +96,21 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
                 value={points[option.id] || 0}
                 onChange={(e) => handleChange(option.id, e.target.value)}
                 className="w-24 text-right"
+                placeholder="0"
               />
             </div>
           </Card>
         ))}
       </div>
 
-      <Button onClick={handleSubmit} disabled={disabled || totalAllocated === 0} className="w-full">
-        Submit
-      </Button>
+      <div className="text-center">
+        <p className="mb-4">
+          Total allocated: {totalAllocated} / {totalPoints}
+        </p>
+        <Button onClick={handleSubmit} disabled={disabled || totalAllocated === 0} className="w-full">
+          {disabled ? "Submitting..." : "Submit Allocation"}
+        </Button>
+      </div>
     </div>
   )
 }
