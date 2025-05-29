@@ -7,27 +7,34 @@ import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
-interface Poll {
-  id: string
-  title: string
-  type: string
-  data: {
-    question: string
-    options: string[]
-    totalPoints: number
-    minPointsPerOption?: number
-    maxPointsPerOption?: number
-  }
-}
-
 interface PointsAllocationParticipantProps {
-  poll: Poll
+  poll: any
   onSubmit: (data: any) => void
   disabled: boolean
 }
 
 export function PointsAllocationParticipant({ poll, onSubmit, disabled }: PointsAllocationParticipantProps) {
-  const { question, options, totalPoints, minPointsPerOption = 0, maxPointsPerOption } = poll.data
+  const pollData = poll.data || {}
+
+  // Extract options safely
+  const options = (() => {
+    const rawOptions = pollData.options || []
+    return rawOptions.map((option: any) => {
+      if (typeof option === "string") return { id: option, text: option }
+      if (option && typeof option === "object") {
+        return {
+          id: option.id || option.text || String(Math.random()),
+          text: option.text || option.id || "Option",
+        }
+      }
+      return { id: String(Math.random()), text: "Option" }
+    })
+  })()
+
+  const totalPoints = pollData.totalPoints || 100
+  const minPointsPerOption = pollData.minPointsPerOption || 0
+  const maxPointsPerOption = pollData.maxPointsPerOption || totalPoints
+
   const [allocation, setAllocation] = useState<Record<string, number>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -35,7 +42,7 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
   useEffect(() => {
     const initialAllocation: Record<string, number> = {}
     options.forEach((option) => {
-      initialAllocation[option] = 0
+      initialAllocation[option.id] = 0
     })
     setAllocation(initialAllocation)
   }, [options])
@@ -43,22 +50,22 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
   const totalAllocated = Object.values(allocation).reduce((sum, points) => sum + points, 0)
   const remainingPoints = totalPoints - totalAllocated
 
-  const handlePointsChange = (option: string, value: string) => {
+  const handlePointsChange = (optionId: string, value: string) => {
     const points = Number.parseInt(value) || 0
-    const newAllocation = { ...allocation, [option]: points }
+    const newAllocation = { ...allocation, [optionId]: points }
 
     // Validate constraints
     const newErrors: Record<string, string> = {}
 
     if (points < minPointsPerOption) {
-      newErrors[option] = `Minimum ${minPointsPerOption} points required`
+      newErrors[optionId] = `Minimum ${minPointsPerOption} points required`
     } else if (maxPointsPerOption && points > maxPointsPerOption) {
-      newErrors[option] = `Maximum ${maxPointsPerOption} points allowed`
+      newErrors[optionId] = `Maximum ${maxPointsPerOption} points allowed`
     }
 
     const newTotal = Object.values(newAllocation).reduce((sum, p) => sum + p, 0)
     if (newTotal > totalPoints) {
-      newErrors[option] = `Would exceed total points (${totalPoints})`
+      newErrors[optionId] = `Would exceed total points (${totalPoints})`
       return // Don't update if it would exceed total
     }
 
@@ -72,7 +79,7 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
 
     const newAllocation: Record<string, number> = {}
     options.forEach((option, index) => {
-      newAllocation[option] = pointsPerOption + (index < remainder ? 1 : 0)
+      newAllocation[option.id] = pointsPerOption + (index < remainder ? 1 : 0)
     })
 
     setAllocation(newAllocation)
@@ -82,7 +89,7 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
   const clearAll = () => {
     const newAllocation: Record<string, number> = {}
     options.forEach((option) => {
-      newAllocation[option] = 0
+      newAllocation[option.id] = 0
     })
     setAllocation(newAllocation)
     setErrors({})
@@ -94,7 +101,7 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
 
     // Check min/max constraints
     for (const option of options) {
-      const points = allocation[option] || 0
+      const points = allocation[option.id] || 0
       if (points < minPointsPerOption) return false
       if (maxPointsPerOption && points > maxPointsPerOption) return false
     }
@@ -111,7 +118,7 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium mb-2">{question}</h3>
+        <h3 className="text-lg font-medium mb-2">{pollData.question || "Allocate Points"}</h3>
         <div className="flex items-center gap-4 mb-4">
           <Badge variant={remainingPoints === 0 ? "default" : "secondary"}>{remainingPoints} points remaining</Badge>
           <Badge variant="outline">
@@ -122,26 +129,26 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
 
       <div className="space-y-4">
         {options.map((option) => (
-          <Card key={option} className="p-4">
+          <Card key={option.id} className="p-4">
             <div className="flex items-center justify-between gap-4">
-              <Label htmlFor={`points-${option}`} className="flex-1 text-sm font-medium">
-                {option}
+              <Label htmlFor={`points-${option.id}`} className="flex-1 text-sm font-medium">
+                {option.text}
               </Label>
               <div className="flex items-center gap-2">
                 <Input
-                  id={`points-${option}`}
+                  id={`points-${option.id}`}
                   type="number"
                   min={minPointsPerOption}
                   max={maxPointsPerOption || totalPoints}
-                  value={allocation[option] || 0}
-                  onChange={(e) => handlePointsChange(option, e.target.value)}
+                  value={allocation[option.id] || 0}
+                  onChange={(e) => handlePointsChange(option.id, e.target.value)}
                   className="w-20 text-center"
                   disabled={disabled}
                 />
                 <span className="text-sm text-muted-foreground">pts</span>
               </div>
             </div>
-            {errors[option] && <p className="text-sm text-red-500 mt-1">{errors[option]}</p>}
+            {errors[option.id] && <p className="text-sm text-red-500 mt-1">{errors[option.id]}</p>}
           </Card>
         ))}
       </div>

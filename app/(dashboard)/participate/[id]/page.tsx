@@ -14,18 +14,8 @@ import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
 import { PointsAllocationParticipant } from "@/components/poll-participants/points-allocation-participant"
 
-interface Session {
-  id: string
-  title: string
-  description?: string
-  status: "draft" | "active" | "complete"
-  code: string
-  content: any[]
-  current_poll_index?: number
-}
-
 export default function ParticipatePage({ params }: { params: { id: string } }) {
-  const [session, setSession] = useState<Session | null>(null)
+  const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [response, setResponse] = useState<any>({})
@@ -59,6 +49,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
         throw sessionError
       }
 
+      console.log("Session data:", sessionData)
       setSession(sessionData)
     } catch (error) {
       console.error("Error fetching session:", error)
@@ -116,20 +107,54 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     return session.content[pollIndex] || session.content[0]
   }
 
-  // Helper function to safely get option text
-  const getOptionText = (option: any): string => {
-    if (typeof option === "string") return option
-    if (option && typeof option === "object" && option.text) return option.text
-    if (option && typeof option === "object" && option.id) return option.id
-    return String(option || "")
-  }
+  const renderMultipleChoice = (poll: any) => {
+    const pollData = poll.data || {}
+    const options = pollData.options || []
 
-  // Helper function to safely get option value
-  const getOptionValue = (option: any): string => {
-    if (typeof option === "string") return option
-    if (option && typeof option === "object" && option.id) return option.id
-    if (option && typeof option === "object" && option.text) return option.text
-    return String(option || "")
+    if (pollData.allowMultipleAnswers) {
+      return (
+        <div className="space-y-2">
+          {options.map((option: any, index: number) => {
+            const optionText = typeof option === "string" ? option : option.text || option.id || `Option ${index + 1}`
+            const optionId = typeof option === "string" ? option : option.id || option.text || `option-${index}`
+
+            return (
+              <div key={index} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`option-${index}`}
+                  checked={response.choices?.includes(optionId) || false}
+                  onCheckedChange={(checked) => {
+                    const currentChoices = response.choices || []
+                    if (checked) {
+                      setResponse({ choices: [...currentChoices, optionId] })
+                    } else {
+                      setResponse({ choices: currentChoices.filter((choice: string) => choice !== optionId) })
+                    }
+                  }}
+                />
+                <Label htmlFor={`option-${index}`}>{optionText}</Label>
+              </div>
+            )
+          })}
+        </div>
+      )
+    }
+
+    return (
+      <RadioGroup value={response.choice || ""} onValueChange={(value) => setResponse({ choice: value })}>
+        {options.map((option: any, index: number) => {
+          const optionText = typeof option === "string" ? option : option.text || option.id || `Option ${index + 1}`
+          const optionId = typeof option === "string" ? option : option.id || option.text || `option-${index}`
+
+          return (
+            <div key={index} className="flex items-center space-x-2">
+              <RadioGroupItem value={optionId} id={`option-${index}`} />
+              <Label htmlFor={`option-${index}`}>{optionText}</Label>
+            </div>
+          )
+        })}
+      </RadioGroup>
+    )
   }
 
   const renderPollContent = () => {
@@ -148,48 +173,10 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
 
     switch (currentPoll.type) {
       case "multiple-choice":
-        const options = pollData.options || []
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{pollData.question || "Multiple Choice Question"}</h3>
-            {pollData.allowMultipleAnswers ? (
-              <div className="space-y-2">
-                {options.map((option: any, index: number) => {
-                  const optionText = getOptionText(option)
-                  const optionValue = getOptionValue(option)
-                  return (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`option-${index}`}
-                        checked={response.choices?.includes(optionValue) || false}
-                        onCheckedChange={(checked) => {
-                          const currentChoices = response.choices || []
-                          if (checked) {
-                            setResponse({ choices: [...currentChoices, optionValue] })
-                          } else {
-                            setResponse({ choices: currentChoices.filter((choice: string) => choice !== optionValue) })
-                          }
-                        }}
-                      />
-                      <Label htmlFor={`option-${index}`}>{optionText}</Label>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <RadioGroup value={response.choice || ""} onValueChange={(value) => setResponse({ choice: value })}>
-                {options.map((option: any, index: number) => {
-                  const optionText = getOptionText(option)
-                  const optionValue = getOptionValue(option)
-                  return (
-                    <div key={index} className="flex items-center space-x-2">
-                      <RadioGroupItem value={optionValue} id={`option-${index}`} />
-                      <Label htmlFor={`option-${index}`}>{optionText}</Label>
-                    </div>
-                  )
-                })}
-              </RadioGroup>
-            )}
+            {renderMultipleChoice(currentPoll)}
             <Button
               onClick={() => handleSubmitResponse(response)}
               disabled={(!response.choice && !response.choices?.length) || submitting}
@@ -284,9 +271,6 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
           <div className="text-center py-8">
             <h3 className="text-lg font-medium mb-2">Poll Type: {currentPoll.type}</h3>
             <p className="text-muted-foreground">This poll type is not yet supported in the participant view.</p>
-            <div className="mt-4 p-4 bg-gray-100 rounded text-left">
-              <pre className="text-xs overflow-auto">{JSON.stringify(currentPoll, null, 2)}</pre>
-            </div>
           </div>
         )
     }
@@ -322,7 +306,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
             <CardDescription>The session you're looking for doesn't exist or has been removed.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push("/dashboard")}>Go to Dashboard</Button>
+            <Button onClick={() => router.push("/")}>Go to Home</Button>
           </CardContent>
         </Card>
       </div>
@@ -338,7 +322,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
             <CardDescription>This session has ended. Thank you for your participation!</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push("/dashboard")}>Go to Dashboard</Button>
+            <Button onClick={() => router.push("/")}>Go to Home</Button>
           </CardContent>
         </Card>
       </div>
@@ -367,9 +351,9 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     <div className="container mx-auto py-10 max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>{session.title}</CardTitle>
+          <CardTitle>{session.title || "Interactive Session"}</CardTitle>
           <CardDescription>
-            Session Code: <span className="font-mono font-bold">{session.code}</span>
+            Session Code: <span className="font-mono font-bold">{session.code || params.id}</span>
           </CardDescription>
         </CardHeader>
         <CardContent>{renderPollContent()}</CardContent>
