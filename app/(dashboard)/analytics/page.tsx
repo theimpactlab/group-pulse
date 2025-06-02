@@ -1,154 +1,170 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, BarChart, PieChart, LineChart } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { TrendingUp, BarChart3 } from "lucide-react"
+import AnalyticsCharts from "@/components/analytics/analytics-charts"
+import MetricsCards from "@/components/analytics/metrics-cards"
+import ProjectsTable from "@/components/analytics/projects-table"
+import DomainAnalysis from "@/components/analytics/domain-analysis"
+import ExportButton from "@/components/analytics/export-button"
 
-export default function AnalyticsPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalSessions: 0,
-    totalResponses: 0,
-    averageResponsesPerSession: 0,
-    activeSessionsCount: 0,
-  })
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login")
-    } else if (status === "authenticated") {
-      fetchAnalytics()
-    }
-  }, [status, router])
+export default async function AnalyticsPage() {
+  const supabase = createServerComponentClient({ cookies })
 
-  const fetchAnalytics = async () => {
-    try {
-      // Fetch sessions for the current user
-      const { data: sessions, error: sessionsError } = await supabase
-        .from("sessions")
-        .select("id, status")
-        .eq("user_id", session?.user?.id)
+  // Get the current user
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
-      if (sessionsError) throw sessionsError
-
-      const sessionIds = sessions?.map((s) => s.id) || []
-      const activeSessions = sessions?.filter((s) => s.status === "active") || []
-
-      // Fetch responses for these sessions
-      const { data: responses, error: responsesError } = await supabase
-        .from("responses")
-        .select("id, session_id")
-        .in("session_id", sessionIds.length > 0 ? sessionIds : ["no-sessions"])
-
-      if (responsesError) throw responsesError
-
-      // Calculate statistics
-      const totalSessions = sessions?.length || 0
-      const totalResponses = responses?.length || 0
-      const averageResponsesPerSession = totalSessions > 0 ? totalResponses / totalSessions : 0
-      const activeSessionsCount = activeSessions.length || 0
-
-      setStats({
-        totalSessions,
-        totalResponses,
-        averageResponsesPerSession,
-        activeSessionsCount,
-      })
-    } catch (error) {
-      console.error("Error fetching analytics:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  if (isLoading) {
+  if (!session) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <main className="flex-1 container py-6 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </main>
+      <div className="container mx-auto py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>Please log in to view analytics</CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     )
   }
 
-  return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-1 container py-6">
-        <h1 className="text-3xl font-bold mb-6">Analytics</h1>
+  // Get all projects with status
+  const { data: projects, error: projectsError } = await supabase
+    .from("projects")
+    .select("id, name, created_at, organization_name, status")
+    .order("created_at", { ascending: false })
 
-        <div className="grid gap-6 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
-              <BarChart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalSessions}</div>
-            </CardContent>
-          </Card>
+  if (projectsError) {
+    console.error("Error fetching projects:", projectsError)
+    return (
+      <div className="container mx-auto py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error Loading Data</CardTitle>
+            <CardDescription>There was an error loading your analytics data. Please try again.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
+  }
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Responses</CardTitle>
-              <LineChart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalResponses}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Responses</CardTitle>
-              <PieChart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.averageResponsesPerSession.toFixed(1)}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
-              <BarChart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeSessionsCount}</div>
-            </CardContent>
-          </Card>
+  if (!projects || projects.length === 0) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="text-center space-y-6">
+          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
+            <BarChart3 className="h-12 w-12 text-gray-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold mb-2">No Data Available</h1>
+            <p className="text-muted-foreground mb-6">
+              You need to create projects and complete assessments to see analytics.
+            </p>
+            <Button asChild>
+              <a href="/dashboard">Create Your First Project</a>
+            </Button>
+          </div>
         </div>
+      </div>
+    )
+  }
 
-        {stats.totalSessions === 0 ? (
-          <Card className="mt-6">
-            <CardContent className="py-6">
-              <div className="text-center">
-                <h3 className="text-lg font-medium mb-2">No data available</h3>
-                <p className="text-muted-foreground mb-4">
-                  Create your first session to start collecting analytics data.
-                </p>
+  // Get all assessments for these projects
+  const projectIds = projects.map((p) => p.id)
+  const { data: assessments, error: assessmentsError } = await supabase
+    .from("assessments")
+    .select("id, project_id, created_at, updated_at")
+    .in("project_id", projectIds)
+
+  // Get all scores for these assessments
+  const assessmentIds = assessments?.map((a) => a.id) || []
+  const { data: scores, error: scoresError } = await supabase
+    .from("scores")
+    .select("assessment_id, domain, score, created_at")
+    .in("assessment_id", assessmentIds)
+
+  const analyticsData = {
+    projects: projects || [],
+    assessments: assessments || [],
+    scores: scores || [],
+  }
+
+  // Count completed projects
+  const completedProjects = projects.filter((p) => p.status === "completed").length
+
+  return (
+    <div className="container mx-auto py-10 space-y-8">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+          <p className="text-muted-foreground">Comprehensive insights into your impact measurement capabilities</p>
+        </div>
+        <ExportButton data={analyticsData} />
+      </div>
+
+      <MetricsCards data={analyticsData} />
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="domains">Domain Analysis</TabsTrigger>
+          <TabsTrigger value="projects">Projects</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <AnalyticsCharts data={analyticsData} />
+        </TabsContent>
+
+        <TabsContent value="domains" className="space-y-6">
+          {completedProjects === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <div className="text-center space-y-4">
+                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <h3 className="text-lg font-medium">No Completed Projects</h3>
+                    <p className="text-muted-foreground">
+                      Domain analysis is available for completed projects only. Mark projects as completed to see domain
+                      analysis.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline">
+                    <a href="/projects">Manage Projects</a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <DomainAnalysis data={analyticsData} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="projects" className="space-y-6">
+          <ProjectsTable data={analyticsData} />
+        </TabsContent>
+
+        <TabsContent value="trends" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Trends Analysis</CardTitle>
+              <CardDescription>Track your progress over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12 text-muted-foreground">
+                <TrendingUp className="h-12 w-12 mx-auto mb-4" />
+                <p>Trends analysis will be available with more assessment data</p>
               </div>
             </CardContent>
           </Card>
-        ) : (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Analytics Overview</CardTitle>
-              <CardDescription>Summary of your interactive sessions and participant engagement.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Detailed analytics are available for each individual session. Visit a specific session to view its
-                analytics.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </main>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
