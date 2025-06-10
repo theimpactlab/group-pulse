@@ -190,8 +190,13 @@ export default function ResultsPage() {
     const wordCounts: Record<string, number> = {}
 
     pollResponses.forEach((response) => {
-      const word = response.response.toLowerCase().trim()
-      wordCounts[word] = (wordCounts[word] || 0) + 1
+      // Ensure response.response is a string
+      const responseText = typeof response.response === "string" ? response.response : String(response.response || "")
+
+      const word = responseText.toLowerCase().trim()
+      if (word) {
+        wordCounts[word] = (wordCounts[word] || 0) + 1
+      }
     })
 
     // Sort words by frequency
@@ -223,14 +228,24 @@ export default function ResultsPage() {
       <div className="space-y-4">
         <h3 className="text-lg font-medium">{poll.data.question}</h3>
         <div className="space-y-3 max-h-[400px] overflow-y-auto">
-          {pollResponses.map((response, index) => (
-            <div key={index} className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex justify-between items-start">
-                <p className="whitespace-pre-wrap">{response.response}</p>
-                <span className="text-xs text-muted-foreground ml-2">{response.participant_name}</span>
+          {pollResponses.map((response, index) => {
+            // Ensure response.response is a string
+            const responseText =
+              typeof response.response === "string"
+                ? response.response
+                : typeof response.response === "object"
+                  ? JSON.stringify(response.response)
+                  : String(response.response || "")
+
+            return (
+              <div key={`${response.id || index}`} className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-start">
+                  <p className="whitespace-pre-wrap">{responseText}</p>
+                  <span className="text-xs text-muted-foreground ml-2">{response.participant_name || "Anonymous"}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
         <p className="text-sm text-muted-foreground">Total responses: {pollResponses.length}</p>
       </div>
