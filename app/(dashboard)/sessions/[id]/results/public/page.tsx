@@ -6,11 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, BarChart3, PieChart, CloudRain, MessageSquare, SlidersHorizontal, Coins } from "lucide-react"
-import { createClient } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase" // Use the singleton
 import type { PollType } from "@/types/poll-types"
-
-// Create a Supabase client for public access
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
 export default function PublicResultsPage() {
   const params = useParams()
@@ -107,7 +104,7 @@ export default function PublicResultsPage() {
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
 
         <div className="grid grid-cols-3 gap-4 text-center">
           <div className="p-4 bg-blue-50 rounded-lg">
@@ -127,8 +124,8 @@ export default function PublicResultsPage() {
 
         <div className="mt-6">
           <div className="flex justify-between mb-4">
-            <span className="font-medium text-sm">{poll.data.leftOption}</span>
-            <span className="font-medium text-sm">{poll.data.rightOption}</span>
+            <span className="font-medium text-sm">{String(poll.data.leftOption)}</span>
+            <span className="font-medium text-sm">{String(poll.data.rightOption)}</span>
           </div>
 
           <div className="relative h-16 bg-gray-50 rounded-lg border border-gray-100">
@@ -139,7 +136,7 @@ export default function PublicResultsPage() {
 
               return (
                 <div
-                  key={idx}
+                  key={`dot-${idx}`}
                   className="absolute w-4 h-4 rounded-full bg-primary transform -translate-x-1/2 -translate-y-1/2"
                   style={{
                     left: `${percentage}%`,
@@ -181,9 +178,9 @@ export default function PublicResultsPage() {
               const percentage = Math.round((position / (poll.data.steps - 1)) * 100)
 
               return (
-                <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                <div key={`response-${response.id || index}`} className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">{response.participant_name || "Anonymous"}</span>
+                    <span className="font-medium">{String(response.participant_name || "Anonymous")}</span>
                     <span className="text-xs px-2 py-1 bg-primary/10 rounded-full text-primary font-medium">
                       {percentage}%
                     </span>
@@ -240,9 +237,6 @@ export default function PublicResultsPage() {
   }
 
   const renderPointsAllocationResults = (poll: any, pollResponses: any[]) => {
-    console.log("Public - Poll responses for points allocation:", pollResponses)
-    console.log("Public - Poll options:", poll.data.options)
-
     // Calculate average points for each option
     const optionPoints: Record<string, number> = {}
     const optionCounts: Record<string, number> = {}
@@ -254,8 +248,6 @@ export default function PublicResultsPage() {
     })
 
     pollResponses.forEach((response) => {
-      console.log("Public - Processing response:", response)
-
       // Handle multiple possible response formats
       let responseData = null
 
@@ -265,12 +257,8 @@ export default function PublicResultsPage() {
         responseData = response.response
       }
 
-      console.log("Public - Response data:", responseData)
-
       if (responseData && typeof responseData === "object") {
         Object.entries(responseData).forEach(([key, points]: any) => {
-          console.log(`Public - Processing key ${key}: ${points} points`)
-
           // Handle both numeric indices and actual option IDs
           let optionId = key
 
@@ -279,37 +267,29 @@ export default function PublicResultsPage() {
             const optionIndex = Number(key)
             if (poll.data.options[optionIndex]) {
               optionId = poll.data.options[optionIndex].id
-              console.log(`Public - Mapped index ${optionIndex} to option ID ${optionId}`)
             }
           }
 
           // Only process if this is a valid option ID
           if (optionPoints.hasOwnProperty(optionId)) {
-            console.log(`Public - Adding ${points} points to option ${optionId}`)
             optionPoints[optionId] = (optionPoints[optionId] || 0) + points
             optionCounts[optionId] = (optionCounts[optionId] || 0) + 1
-          } else {
-            console.log(`Public - Skipping unknown option ID: ${optionId}`)
           }
         })
       }
     })
-
-    console.log("Public - Final option points:", optionPoints)
 
     const averagePoints: Record<string, number> = {}
     Object.keys(optionPoints).forEach((optionId) => {
       averagePoints[optionId] = optionPoints[optionId] / pollResponses.length || 0
     })
 
-    console.log("Public - Average points:", averagePoints)
-
     // Sort options by average points
     const sortedOptions = [...poll.data.options].sort((a: any, b: any) => averagePoints[b.id] - averagePoints[a.id])
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
 
         <div className="space-y-3">
           {sortedOptions.map((option: any, index: number) => {
@@ -324,7 +304,7 @@ export default function PublicResultsPage() {
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
                       {index + 1}
                     </div>
-                    <p className="font-medium">{option.text}</p>
+                    <p className="font-medium">{String(option.text)}</p>
                   </div>
                   <div className="text-right">
                     <div className="font-bold">{totalPoints} pts</div>
@@ -376,7 +356,7 @@ export default function PublicResultsPage() {
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
         <div className="space-y-3">
           {poll.data.options.map((option: any) => {
             const count = counts[option.id] || 0
@@ -385,7 +365,7 @@ export default function PublicResultsPage() {
             return (
               <div key={option.id} className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span>{option.text}</span>
+                  <span>{String(option.text)}</span>
                   <span className="font-medium">
                     {count} ({percentage}%)
                   </span>
@@ -408,8 +388,11 @@ export default function PublicResultsPage() {
     const wordCounts: Record<string, number> = {}
 
     pollResponses.forEach((response) => {
-      const word = response.response.toLowerCase().trim()
-      wordCounts[word] = (wordCounts[word] || 0) + 1
+      const responseText = typeof response.response === "string" ? response.response : String(response.response || "")
+      const word = responseText.toLowerCase().trim()
+      if (word) {
+        wordCounts[word] = (wordCounts[word] || 0) + 1
+      }
     })
 
     // Sort words by frequency
@@ -417,7 +400,7 @@ export default function PublicResultsPage() {
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
         <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg min-h-[200px]">
           {sortedWords.map(([word, count]: any) => (
             <div
@@ -439,16 +422,27 @@ export default function PublicResultsPage() {
   const renderOpenEndedResults = (poll: any, pollResponses: any[]) => {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
         <div className="space-y-3 max-h-[400px] overflow-y-auto">
-          {pollResponses.map((response, index) => (
-            <div key={index} className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex justify-between items-start">
-                <p className="whitespace-pre-wrap">{response.response}</p>
-                <span className="text-xs text-muted-foreground ml-2">{response.participant_name}</span>
+          {pollResponses.map((response, index) => {
+            const responseText =
+              typeof response.response === "string"
+                ? response.response
+                : typeof response.response === "object"
+                  ? JSON.stringify(response.response)
+                  : String(response.response || "")
+
+            return (
+              <div key={`${response.id || index}`} className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex justify-between items-start">
+                  <p className="whitespace-pre-wrap">{responseText}</p>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    {String(response.participant_name || "Anonymous")}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
         <p className="text-sm text-muted-foreground">Total responses: {pollResponses.length}</p>
       </div>
@@ -483,7 +477,7 @@ export default function PublicResultsPage() {
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
 
         <div className="grid grid-cols-3 gap-4 text-center">
           <div className="p-4 bg-blue-50 rounded-lg">
@@ -561,7 +555,7 @@ export default function PublicResultsPage() {
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
         <div className="space-y-3">
           {sortedOptions.map((option: any, index: number) => {
             const avgPosition = averagePositions[option.id]
@@ -573,7 +567,7 @@ export default function PublicResultsPage() {
                   {index + 1}
                 </div>
                 <div className="flex-grow">
-                  <p className="font-medium">{option.text}</p>
+                  <p className="font-medium">{String(option.text)}</p>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                     <div className="bg-primary h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
                   </div>
@@ -591,17 +585,17 @@ export default function PublicResultsPage() {
   const renderQAResults = (poll: any, pollResponses: any[]) => {
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.title}</h3>
-        {poll.data.description && <p className="text-muted-foreground">{poll.data.description}</p>}
+        <h3 className="text-lg font-medium">{String(poll.data.title)}</h3>
+        {poll.data.description && <p className="text-muted-foreground">{String(poll.data.description)}</p>}
 
         <div className="space-y-4 max-h-[400px] overflow-y-auto">
           {pollResponses.map((response, index) => (
-            <div key={index} className="p-4 bg-gray-50 rounded-lg">
+            <div key={`qa-${response.id || index}`} className="p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-start mb-2">
                 <p className="font-medium">Q:</p>
-                <span className="text-xs text-muted-foreground">From: {response.participant_name}</span>
+                <span className="text-xs text-muted-foreground">From: {String(response.participant_name)}</span>
               </div>
-              <p className="whitespace-pre-wrap pl-6">{response.response}</p>
+              <p className="whitespace-pre-wrap pl-6">{String(response.response)}</p>
             </div>
           ))}
         </div>
@@ -635,7 +629,7 @@ export default function PublicResultsPage() {
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
 
         <div className="p-4 bg-blue-50 rounded-lg mb-4">
           <div className="flex justify-between items-center">
@@ -656,7 +650,7 @@ export default function PublicResultsPage() {
               <div key={option.id} className="space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="flex items-center gap-2">
-                    {option.text}
+                    {String(option.text)}
                     {option.isCorrect && (
                       <span className="text-green-600 text-xs font-medium bg-green-100 px-2 py-0.5 rounded-full">
                         Correct
@@ -702,7 +696,7 @@ export default function PublicResultsPage() {
 
     return (
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+        <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
 
         <div className="grid grid-cols-2 gap-4">
           {poll.data.options.map((option: any) => {
@@ -714,7 +708,7 @@ export default function PublicResultsPage() {
                 <div className="aspect-video bg-gray-100 relative">
                   <img
                     src={option.imageUrl || "/placeholder.svg"}
-                    alt={option.caption || "Image option"}
+                    alt={String(option.caption || "Image option")}
                     className="w-full h-full object-contain"
                     onError={(e) => {
                       ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=150&width=200"
@@ -725,7 +719,7 @@ export default function PublicResultsPage() {
                   </div>
                 </div>
                 <div className="p-3">
-                  <p className="font-medium text-center">{option.caption || `Option ${option.id}`}</p>
+                  <p className="font-medium text-center">{String(option.caption || `Option ${option.id}`)}</p>
                   <p className="text-sm text-center text-muted-foreground mt-1">{count} votes</p>
                 </div>
               </div>
@@ -784,13 +778,13 @@ export default function PublicResultsPage() {
             <BarChart3 className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold">GroupPulse Results</h1>
           </div>
-          <div className="text-sm text-muted-foreground">Session: {sessionData?.title}</div>
+          <div className="text-sm text-muted-foreground">Session: {String(sessionData?.title)}</div>
         </div>
       </header>
       <main className="flex-1 container py-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Results: {sessionData.title}</h1>
-          {sessionData.description && <p className="text-muted-foreground mt-2">{sessionData.description}</p>}
+          <h1 className="text-3xl font-bold">Results: {String(sessionData.title)}</h1>
+          {sessionData.description && <p className="text-muted-foreground mt-2">{String(sessionData.description)}</p>}
         </div>
 
         <div className="grid gap-6 md:grid-cols-3 mb-6">
@@ -828,7 +822,7 @@ export default function PublicResultsPage() {
               <CloudRain className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold capitalize">{sessionData.status}</div>
+              <div className="text-2xl font-bold capitalize">{String(sessionData.status)}</div>
               <p className="text-xs text-muted-foreground">
                 {sessionData.status === "active" ? "Currently accepting responses" : "Not accepting responses"}
               </p>
@@ -853,16 +847,16 @@ export default function PublicResultsPage() {
                   <CardHeader>
                     <CardTitle className="text-lg">Question {index + 1}</CardTitle>
                     <CardDescription>
-                      {poll.type === "multiple-choice" && `Multiple Choice: ${poll.data.question}`}
-                      {poll.type === "word-cloud" && `Word Cloud: ${poll.data.question}`}
-                      {poll.type === "open-ended" && `Open-ended: ${poll.data.question}`}
-                      {poll.type === "scale" && `Scale: ${poll.data.question}`}
-                      {poll.type === "slider" && `Slider: ${poll.data.question}`}
-                      {poll.type === "ranking" && `Ranking: ${poll.data.question}`}
-                      {poll.type === "qa" && `Q&A: ${poll.data.title}`}
-                      {poll.type === "quiz" && `Quiz: ${poll.data.question}`}
-                      {poll.type === "image-choice" && `Image Choice: ${poll.data.question}`}
-                      {poll.type === "points-allocation" && `Points Allocation: ${poll.data.question}`}
+                      {poll.type === "multiple-choice" && `Multiple Choice: ${String(poll.data.question)}`}
+                      {poll.type === "word-cloud" && `Word Cloud: ${String(poll.data.question)}`}
+                      {poll.type === "open-ended" && `Open-ended: ${String(poll.data.question)}`}
+                      {poll.type === "scale" && `Scale: ${String(poll.data.question)}`}
+                      {poll.type === "slider" && `Slider: ${String(poll.data.question)}`}
+                      {poll.type === "ranking" && `Ranking: ${String(poll.data.question)}`}
+                      {poll.type === "qa" && `Q&A: ${String(poll.data.title)}`}
+                      {poll.type === "quiz" && `Quiz: ${String(poll.data.question)}`}
+                      {poll.type === "image-choice" && `Image Choice: ${String(poll.data.question)}`}
+                      {poll.type === "points-allocation" && `Points Allocation: ${String(poll.data.question)}`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

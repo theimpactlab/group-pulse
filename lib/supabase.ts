@@ -1,19 +1,40 @@
 import { createClient } from "@supabase/supabase-js"
 
-// Create a single supabase client for interacting with your database
+// Get environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables")
+// Check if environment variables are properly set
+if (!supabaseUrl || supabaseUrl.includes("your_supabase_url")) {
+  console.error("Missing or invalid NEXT_PUBLIC_SUPABASE_URL environment variable")
+  throw new Error("Supabase URL not configured. Please set the NEXT_PUBLIC_SUPABASE_URL environment variable.")
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-})
+if (!supabaseAnonKey || supabaseAnonKey.includes("your_supabase_anon_key")) {
+  console.error("Missing or invalid NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable")
+  throw new Error(
+    "Supabase Anon Key not configured. Please set the NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable.",
+  )
+}
+
+// Create a singleton Supabase client
+let supabaseInstance: ReturnType<typeof createClient> | null = null
+
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false, // Prevent multiple instances from URL detection
+      },
+    })
+  }
+  return supabaseInstance
+}
+
+// Export the singleton instance
+export const supabase = getSupabaseClient()
 
 // Helper functions for sessions
 export async function fetchSessions(userId: string) {
@@ -70,17 +91,19 @@ export async function saveResponse(responseData: any) {
   return data[0]
 }
 
-export async function deleteImage(url: string, bucket = "images") {
-  const storageUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+// Helper function for image uploads
+export async function uploadImage(file: File, bucket = "images") {
+  const fileExt = file.name.split(".").pop()
+  const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+  const filePath = `poll-images/${fileName}`
 
-  if (!storageUrl) {
-    throw new Error("Missing Supabase storage URL")
-  }
+  const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, {
+    cacheControl: "3600",
+    upsert: false,
+  })
 
-  const path = url.replace(`${storageUrl}/storage/v1/object/public/${bucket}/`, "")
-
-  const { error } = await supabase.storage.from(bucket).remove([path])
   if (error) throw error
 
-  return true
+  const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(filePath)
+  return publicUrlData.publicUrl
 }
