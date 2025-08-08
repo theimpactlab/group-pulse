@@ -33,7 +33,6 @@ export function ContactSection() {
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Phone className="h-5 w-5 text-primary mr-3 mt-0.5" />
                   <div>
                     <p className="font-medium"></p>
                     <a
