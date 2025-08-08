@@ -40,7 +40,7 @@ export function ContactSection() {
                       href=""
                       className="text-muted-foreground hover:text-primary"
                     >
-                      07787067808
+                      
                     </a>
                   </div>
                 </div>
