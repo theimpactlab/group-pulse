@@ -64,6 +64,7 @@ export function WhiteboardCanvas({
   const [stickyNoteValue, setStickyNoteValue] = useState("")
   const [history, setHistory] = useState<WhiteboardElement[][]>([elements])
   const [historyIndex, setHistoryIndex] = useState(0)
+  const [canvasSize, setCanvasSize] = useState({ width: width, height: height })
 
   const addToHistory = useCallback(
     (newElements: WhiteboardElement[]) => {
@@ -90,9 +91,8 @@ export function WhiteboardCanvas({
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    // Clear canvas
     ctx.fillStyle = backgroundColor
-    ctx.fillRect(0, 0, width, height)
+    ctx.fillRect(0, 0, canvasSize.width, canvasSize.height)
 
     // Draw all elements
     elements.forEach((element) => {
@@ -124,7 +124,7 @@ export function WhiteboardCanvas({
         ctx.setLineDash([])
       }
     }
-  }, [elements, backgroundColor, width, height, selectedElement])
+  }, [elements, backgroundColor, canvasSize.width, canvasSize.height, selectedElement])
 
   useEffect(() => {
     drawCanvas()
@@ -343,6 +343,26 @@ export function WhiteboardCanvas({
     link.click()
   }
 
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (containerRef.current) {
+        const container = containerRef.current
+        const rect = container.getBoundingClientRect()
+        const maxWidth = Math.min(window.innerWidth - 100, width) // Leave some margin
+        const maxHeight = Math.min(window.innerHeight - 300, height) // Leave space for UI
+
+        setCanvasSize({
+          width: Math.max(800, maxWidth), // Minimum 800px width
+          height: Math.max(600, maxHeight), // Minimum 600px height
+        })
+      }
+    }
+
+    updateCanvasSize()
+    window.addEventListener("resize", updateCanvasSize)
+    return () => window.removeEventListener("resize", updateCanvasSize)
+  }, [width, height])
+
   return (
     <div className="flex flex-col space-y-4">
       {!readOnly && (
@@ -474,18 +494,18 @@ export function WhiteboardCanvas({
         </div>
       )}
 
-      <div className="flex justify-center">
+      <div className="flex justify-center w-full">
         <div
           ref={containerRef}
-          className="relative border rounded-lg overflow-hidden shadow-sm"
-          style={{ width: Math.min(width, 800), height: Math.min(height, 600) }}
+          className="relative border rounded-lg overflow-hidden shadow-sm w-full max-w-none"
+          style={{ maxHeight: "calc(100vh - 300px)" }}
         >
           <canvas
             ref={canvasRef}
-            width={Math.min(width, 800)}
-            height={Math.min(height, 600)}
+            width={canvasSize.width}
+            height={canvasSize.height}
             className={cn(
-              "absolute top-0 left-0 bg-white",
+              "absolute top-0 left-0 bg-white w-full h-auto",
               !readOnly && currentTool === "pen" && "cursor-crosshair",
               !readOnly && currentTool === "text" && "cursor-text",
               !readOnly && currentTool === "sticky-note" && "cursor-pointer",
