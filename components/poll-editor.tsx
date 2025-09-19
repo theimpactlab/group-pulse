@@ -13,7 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 import { PointsAllocationEditor } from "./poll-editors/points-allocation-editor"
-import { WhiteboardEditor } from "./poll-editors/whiteboard-editor"
 
 interface PollEditorProps {
   poll: PollType
@@ -44,8 +43,6 @@ export function PollEditor({ poll, onChange, onDelete }: PollEditorProps) {
         return <ImageChoiceEditor poll={poll} onChange={onChange} />
       case "points-allocation":
         return <PointsAllocationEditor poll={poll} onChange={onChange} />
-      case "whiteboard":
-        return <WhiteboardEditor poll={poll} onChange={onChange} />
       default:
         return <div>Unknown poll type</div>
     }
@@ -73,8 +70,6 @@ export function PollEditor({ poll, onChange, onDelete }: PollEditorProps) {
         return "Image Choice"
       case "points-allocation":
         return "100 Points"
-      case "whiteboard":
-        return "Whiteboard"
       default:
         return "Unknown Type"
     }

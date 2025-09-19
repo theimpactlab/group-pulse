@@ -197,10 +197,9 @@ export function PollTypeSelector({ onSelect }: PollTypeSelectorProps) {
           strokeLinejoin="round"
           className="text-cyan-500"
         >
-          <path d="M9 11h6" />
-          <path d="M12 15h3" />
-          <path d="M10 7H8" />
-          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 17h.01" />
         </svg>
       ),
     },
@@ -275,32 +274,6 @@ export function PollTypeSelector({ onSelect }: PollTypeSelectorProps) {
           <path d="M18.09 10.37A6 6 0 1 1 10.37 18.09" />
           <path d="M7 6h1v4" />
           <path d="m16.71 13.88.7.71-2.82 2.82" />
-        </svg>
-      ),
-    },
-    {
-      id: "whiteboard",
-      type: "whiteboard",
-      title: "Whiteboard",
-      description: "Collaborative drawing and brainstorming",
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-orange-500"
-        >
-          <rect width="18" height="12" x="3" y="4" rx="2" ry="2" />
-          <line x1="2" y1="20" x2="22" y2="20" />
-          <line x1="12" y1="16" x2="12" y2="20" />
-          <path d="M8 10h8" />
-          <path d="M8 14h5" />
         </svg>
       ),
     },
