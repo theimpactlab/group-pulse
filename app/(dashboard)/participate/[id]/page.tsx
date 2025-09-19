@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
 import { PointsAllocationParticipant } from "@/components/poll-participants/points-allocation-participant"
 import { SimpleTestComponent } from "@/components/poll-participants/simple-test-component"
+import { WhiteboardParticipant } from "@/components/poll-participants/whiteboard-participant"
 
 export default function ParticipatePage({ params }: { params: { id: string } }) {
   const [session, setSession] = useState<any>(null)
@@ -305,6 +306,17 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
               <PointsAllocationParticipant poll={currentPoll} onSubmit={handleSubmitResponse} disabled={submitting} />
             )}
           </div>
+        )
+
+      case "whiteboard":
+        return (
+          <WhiteboardParticipant
+            poll={currentPoll}
+            sessionId={session.id}
+            participantId={`participant_${Date.now()}`}
+            participantName="Anonymous"
+            onResponse={handleSubmitResponse}
+          />
         )
 
       default:
