@@ -77,6 +77,7 @@ export function WhiteboardParticipant({
   }, [])
 
   const handleElementsChange = (newElements: WhiteboardElement[]) => {
+    console.log("[v0] Elements changed:", newElements.length, "elements")
     const elementsWithParticipant = newElements.map((element) => {
       if (!element.participantId) {
         return {
@@ -104,74 +105,73 @@ export function WhiteboardParticipant({
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">{poll.data.title}</CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {participantCount} active
-              </Badge>
-              <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{poll.data.title}</h1>
+            {poll.data.instructions && <p className="text-sm text-muted-foreground mt-1">{poll.data.instructions}</p>}
           </div>
-          {poll.data.instructions && <p className="text-sm text-muted-foreground mt-2">{poll.data.instructions}</p>}
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="w-full min-h-[600px] bg-white border rounded-lg overflow-hidden">
-            <WhiteboardCanvas
-              width={Math.max(poll.data.canvasWidth || 1200, 1200)}
-              height={Math.max(poll.data.canvasHeight || 800, 600)}
-              backgroundColor={poll.data.backgroundColor || "#ffffff"}
-              allowDrawing={poll.data.allowDrawing !== false}
-              allowStickyNotes={poll.data.allowStickyNotes !== false}
-              allowText={poll.data.allowText !== false}
-              elements={elements}
-              onElementsChange={handleElementsChange}
-            />
-          </div>
-          <div className="p-6 pt-4 flex justify-center">
+          <div className="flex items-center gap-4">
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {participantCount} active
+            </Badge>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"}`} />
             <Button onClick={handleSubmitWhiteboard} disabled={isSubmitted} className="px-8">
               {isSubmitted ? "Whiteboard Submitted" : "Submit Whiteboard"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {elements
-              .filter((element) => element.participantName)
-              .slice(-5)
-              .reverse()
-              .map((element) => (
-                <div key={element.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-2 h-2 rounded-full bg-primary/60" />
-                  <span className="font-medium">{element.participantName}</span>
-                  <span>added a {element.type === "sticky-note" ? "sticky note" : element.type}</span>
-                  <span className="ml-auto">
-                    {element.timestamp &&
-                      new Date(element.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                  </span>
-                </div>
-              ))}
-            {elements.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-4">
-                No activity yet. Be the first to contribute!
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex-1">
+        <WhiteboardCanvas
+          width={Math.max(poll.data.canvasWidth || 1400, 1400)}
+          height={Math.max(poll.data.canvasHeight || 800, 800)}
+          backgroundColor={poll.data.backgroundColor || "#ffffff"}
+          allowDrawing={poll.data.allowDrawing !== false}
+          allowStickyNotes={poll.data.allowStickyNotes !== false}
+          allowText={poll.data.allowText !== false}
+          elements={elements}
+          onElementsChange={handleElementsChange}
+        />
+      </div>
+
+      <div className="fixed bottom-4 right-4 w-80">
+        <Card className="shadow-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {elements
+                .filter((element) => element.participantName)
+                .slice(-5)
+                .reverse()
+                .map((element) => (
+                  <div key={element.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-2 h-2 rounded-full bg-primary/60" />
+                    <span className="font-medium">{element.participantName}</span>
+                    <span>added a {element.type === "sticky-note" ? "sticky note" : element.type}</span>
+                    <span className="ml-auto">
+                      {element.timestamp &&
+                        new Date(element.timestamp).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                    </span>
+                  </div>
+                ))}
+              {elements.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No activity yet. Be the first to contribute!
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
