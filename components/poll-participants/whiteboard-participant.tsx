@@ -119,18 +119,20 @@ export function WhiteboardParticipant({
           </div>
           {poll.data.instructions && <p className="text-sm text-muted-foreground mt-2">{poll.data.instructions}</p>}
         </CardHeader>
-        <CardContent>
-          <WhiteboardCanvas
-            width={poll.data.canvasWidth}
-            height={poll.data.canvasHeight}
-            backgroundColor={poll.data.backgroundColor}
-            allowDrawing={poll.data.allowDrawing}
-            allowStickyNotes={poll.data.allowStickyNotes}
-            allowText={poll.data.allowText}
-            elements={elements}
-            onElementsChange={handleElementsChange}
-          />
-          <div className="mt-4 flex justify-center">
+        <CardContent className="p-0">
+          <div className="w-full min-h-[600px] bg-white border rounded-lg overflow-hidden">
+            <WhiteboardCanvas
+              width={Math.max(poll.data.canvasWidth || 1200, 1200)}
+              height={Math.max(poll.data.canvasHeight || 800, 600)}
+              backgroundColor={poll.data.backgroundColor || "#ffffff"}
+              allowDrawing={poll.data.allowDrawing !== false}
+              allowStickyNotes={poll.data.allowStickyNotes !== false}
+              allowText={poll.data.allowText !== false}
+              elements={elements}
+              onElementsChange={handleElementsChange}
+            />
+          </div>
+          <div className="p-6 pt-4 flex justify-center">
             <Button onClick={handleSubmitWhiteboard} disabled={isSubmitted} className="px-8">
               {isSubmitted ? "Whiteboard Submitted" : "Submit Whiteboard"}
             </Button>
