@@ -808,11 +808,25 @@ export default function ResultsPage() {
     const allElements: any[] = []
     const participantColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899"]
 
+    console.log("[v0] Processing whiteboard responses:", pollResponses)
+
     pollResponses.forEach((response, participantIndex) => {
       const participantColor = participantColors[participantIndex % participantColors.length]
 
-      if (response.response?.elements && Array.isArray(response.response.elements)) {
-        response.response.elements.forEach((element: any) => {
+      let responseData = response.response
+      if (typeof responseData === "string") {
+        try {
+          responseData = JSON.parse(responseData)
+        } catch (e) {
+          console.log("[v0] Failed to parse response data:", e)
+          responseData = { elements: [] }
+        }
+      }
+
+      console.log("[v0] Parsed response data:", responseData)
+
+      if (responseData?.elements && Array.isArray(responseData.elements)) {
+        responseData.elements.forEach((element: any) => {
           allElements.push({
             ...element,
             participantId: response.participant_id || `participant-${participantIndex}`,
@@ -822,6 +836,8 @@ export default function ResultsPage() {
         })
       }
     })
+
+    console.log("[v0] All aggregated elements:", allElements)
 
     return (
       <div className="space-y-6">
@@ -855,17 +871,19 @@ export default function ResultsPage() {
             <p className="text-sm text-muted-foreground">Combined contributions from all participants</p>
           </div>
 
-          <div className="p-4">
-            <WhiteboardCanvas
-              width={Math.max(poll.data.canvasWidth || 1200, 1200)}
-              height={Math.max(poll.data.canvasHeight || 700, 700)}
-              backgroundColor={poll.data.backgroundColor || "#ffffff"}
-              allowDrawing={false}
-              allowStickyNotes={false}
-              allowText={false}
-              readOnly={true}
-              elements={allElements}
-            />
+          <div className="p-4 flex justify-center">
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <WhiteboardCanvas
+                width={Math.min(Math.max(poll.data.canvasWidth || 1200, 800), 1000)}
+                height={Math.min(Math.max(poll.data.canvasHeight || 700, 500), 600)}
+                backgroundColor={poll.data.backgroundColor || "#ffffff"}
+                allowDrawing={false}
+                allowStickyNotes={false}
+                allowText={false}
+                readOnly={true}
+                elements={allElements}
+              />
+            </div>
           </div>
         </div>
 
@@ -874,7 +892,16 @@ export default function ResultsPage() {
           <h4 className="font-medium">Individual Contributions</h4>
           <div className="grid gap-4 md:grid-cols-2">
             {pollResponses.map((response, index) => {
-              const participantElements = response.response?.elements || []
+              let responseData = response.response
+              if (typeof responseData === "string") {
+                try {
+                  responseData = JSON.parse(responseData)
+                } catch (e) {
+                  responseData = { elements: [] }
+                }
+              }
+
+              const participantElements = responseData?.elements || []
               const participantColor = participantColors[index % participantColors.length]
 
               return (
@@ -895,7 +922,9 @@ export default function ResultsPage() {
                         {participantElements.map((element: any, elemIndex: number) => (
                           <div key={elemIndex} className="text-sm p-2 bg-gray-50 rounded">
                             <div className="flex justify-between items-center">
-                              <span className="font-medium capitalize">{element.type.replace("-", " ")}</span>
+                              <span className="font-medium capitalize">
+                                {element.type?.replace("-", " ") || "Unknown"}
+                              </span>
                               <span className="text-xs text-muted-foreground">
                                 {element.timestamp && new Date(element.timestamp).toLocaleTimeString()}
                               </span>
