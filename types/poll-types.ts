@@ -125,6 +125,22 @@ export interface PointsAllocationPoll extends InteractiveElement {
   }
 }
 
+// Whiteboard Poll (Collaborative drawing and sticky notes)
+export interface WhiteboardPoll extends InteractiveElement {
+  type: "whiteboard"
+  data: {
+    title: string
+    instructions?: string
+    canvasWidth: number
+    canvasHeight: number
+    allowDrawing: boolean
+    allowStickyNotes: boolean
+    allowText: boolean
+    backgroundColor: string
+    maxParticipants?: number
+  }
+}
+
 // Union type of all poll types
 export type PollType =
   | MultipleChoicePoll
@@ -137,6 +153,7 @@ export type PollType =
   | QuizPoll
   | ImageChoicePoll
   | PointsAllocationPoll
+  | WhiteboardPoll
 
 // Poll response types
 export interface PollResponse {
