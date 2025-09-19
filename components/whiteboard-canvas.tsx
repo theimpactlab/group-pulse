@@ -52,6 +52,8 @@ export function WhiteboardCanvas({
   const containerRef = useRef<HTMLDivElement>(null)
   const [currentTool, setCurrentTool] = useState<Tool>("select")
   const [isDrawing, setIsDrawing] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [currentPath, setCurrentPath] = useState<{ x: number; y: number }[]>([])
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [showTextInput, setShowTextInput] = useState(false)
@@ -111,7 +113,18 @@ export function WhiteboardCanvas({
         ctx.stroke()
       }
     })
-  }, [elements, backgroundColor, width, height])
+
+    if (selectedElement) {
+      const element = elements.find((e) => e.id === selectedElement)
+      if (element && element.type !== "drawing") {
+        ctx.strokeStyle = "#3b82f6"
+        ctx.lineWidth = 2
+        ctx.setLineDash([5, 5])
+        ctx.strokeRect(element.x - 5, element.y - 5, (element.width || 100) + 10, (element.height || 30) + 10)
+        ctx.setLineDash([])
+      }
+    }
+  }, [elements, backgroundColor, width, height, selectedElement])
 
   useEffect(() => {
     drawCanvas()
@@ -128,29 +141,81 @@ export function WhiteboardCanvas({
     }
   }
 
+  const getElementAtPosition = (x: number, y: number): WhiteboardElement | null => {
+    // Check in reverse order (top to bottom)
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const element = elements[i]
+      if (element.type === "sticky-note" || element.type === "text") {
+        const elementWidth = element.width || (element.type === "text" ? 100 : 200)
+        const elementHeight = element.height || (element.type === "text" ? 30 : 150)
+
+        if (x >= element.x && x <= element.x + elementWidth && y >= element.y && y <= element.y + elementHeight) {
+          return element
+        }
+      }
+    }
+    return null
+  }
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (readOnly) return
 
+    e.preventDefault()
+    e.stopPropagation()
+
     const pos = getMousePosition(e)
 
-    if (currentTool === "pen" && allowDrawing) {
+    if (currentTool === "select") {
+      const clickedElement = getElementAtPosition(pos.x, pos.y)
+      if (clickedElement) {
+        setSelectedElement(clickedElement.id)
+        setIsDragging(true)
+        setDragOffset({
+          x: pos.x - clickedElement.x,
+          y: pos.y - clickedElement.y,
+        })
+      } else {
+        setSelectedElement(null)
+      }
+    } else if (currentTool === "pen" && allowDrawing) {
       setIsDrawing(true)
       setCurrentPath([pos])
+      setSelectedElement(null)
     } else if (currentTool === "text" && allowText) {
       setTextInputPosition(pos)
       setTextInputValue("")
       setShowTextInput(true)
+      setSelectedElement(null)
     } else if (currentTool === "sticky-note" && allowStickyNotes) {
       setStickyNotePosition(pos)
       setStickyNoteValue("")
       setShowStickyNoteInput(true)
+      setSelectedElement(null)
     }
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || currentTool !== "pen" || readOnly) return
+    if (readOnly) return
 
     const pos = getMousePosition(e)
+
+    if (isDragging && selectedElement && currentTool === "select") {
+      const newElements = elements.map((element) => {
+        if (element.id === selectedElement) {
+          return {
+            ...element,
+            x: pos.x - dragOffset.x,
+            y: pos.y - dragOffset.y,
+          }
+        }
+        return element
+      })
+      onElementsChange?.(newElements)
+      return
+    }
+
+    if (!isDrawing || currentTool !== "pen") return
+
     setCurrentPath((prev) => [...prev, pos])
 
     // Draw current path in real-time
@@ -175,6 +240,12 @@ export function WhiteboardCanvas({
   }
 
   const handleMouseUp = () => {
+    if (isDragging) {
+      setIsDragging(false)
+      // Add to history when drag is complete
+      addToHistory(elements)
+    }
+
     if (isDrawing && currentPath.length > 0) {
       const newElement: WhiteboardElement = {
         id: Date.now().toString(),
@@ -231,8 +302,17 @@ export function WhiteboardCanvas({
     setStickyNoteValue("")
   }
 
+  const deleteSelectedElement = () => {
+    if (selectedElement) {
+      const newElements = elements.filter((element) => element.id !== selectedElement)
+      updateElements(newElements)
+      setSelectedElement(null)
+    }
+  }
+
   const clearCanvas = () => {
     updateElements([])
+    setSelectedElement(null)
   }
 
   const undo = () => {
@@ -240,6 +320,7 @@ export function WhiteboardCanvas({
       setHistoryIndex(historyIndex - 1)
       const previousElements = history[historyIndex - 1]
       onElementsChange?.(previousElements)
+      setSelectedElement(null)
     }
   }
 
@@ -248,6 +329,7 @@ export function WhiteboardCanvas({
       setHistoryIndex(historyIndex + 1)
       const nextElements = history[historyIndex + 1]
       onElementsChange?.(nextElements)
+      setSelectedElement(null)
     }
   }
 
@@ -268,7 +350,11 @@ export function WhiteboardCanvas({
           <Button
             variant={currentTool === "select" ? "default" : "outline"}
             size="sm"
-            onClick={() => setCurrentTool("select")}
+            onClick={(e) => {
+              e.preventDefault()
+              setCurrentTool("select")
+            }}
+            type="button"
           >
             <MousePointer className="h-4 w-4 mr-2" />
             Select
@@ -278,7 +364,11 @@ export function WhiteboardCanvas({
             <Button
               variant={currentTool === "pen" ? "default" : "outline"}
               size="sm"
-              onClick={() => setCurrentTool("pen")}
+              onClick={(e) => {
+                e.preventDefault()
+                setCurrentTool("pen")
+              }}
+              type="button"
             >
               <Pen className="h-4 w-4 mr-2" />
               Draw
@@ -289,7 +379,11 @@ export function WhiteboardCanvas({
             <Button
               variant={currentTool === "sticky-note" ? "default" : "outline"}
               size="sm"
-              onClick={() => setCurrentTool("sticky-note")}
+              onClick={(e) => {
+                e.preventDefault()
+                setCurrentTool("sticky-note")
+              }}
+              type="button"
             >
               <StickyNote className="h-4 w-4 mr-2" />
               Sticky Note
@@ -300,7 +394,11 @@ export function WhiteboardCanvas({
             <Button
               variant={currentTool === "text" ? "default" : "outline"}
               size="sm"
-              onClick={() => setCurrentTool("text")}
+              onClick={(e) => {
+                e.preventDefault()
+                setCurrentTool("text")
+              }}
+              type="button"
             >
               <Type className="h-4 w-4 mr-2" />
               Text
@@ -309,155 +407,256 @@ export function WhiteboardCanvas({
 
           <div className="flex-1" />
 
-          <Button variant="outline" size="sm" onClick={undo} disabled={historyIndex <= 0}>
+          {selectedElement && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault()
+                deleteSelectedElement()
+              }}
+              type="button"
+              className="text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault()
+              undo()
+            }}
+            disabled={historyIndex <= 0}
+            type="button"
+          >
             <Undo className="h-4 w-4" />
           </Button>
 
-          <Button variant="outline" size="sm" onClick={redo} disabled={historyIndex >= history.length - 1}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault()
+              redo()
+            }}
+            disabled={historyIndex >= history.length - 1}
+            type="button"
+          >
             <Redo className="h-4 w-4" />
           </Button>
 
-          <Button variant="outline" size="sm" onClick={clearCanvas}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault()
+              clearCanvas()
+            }}
+            type="button"
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
 
-          <Button variant="outline" size="sm" onClick={downloadCanvas}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault()
+              downloadCanvas()
+            }}
+            type="button"
+          >
             <Download className="h-4 w-4" />
           </Button>
         </div>
       )}
 
-      <div
-        ref={containerRef}
-        className="relative border rounded-lg overflow-hidden"
-        style={{ width: width, height: height }}
-      >
-        <canvas
-          ref={canvasRef}
-          width={width}
-          height={height}
-          className={cn(
-            "absolute top-0 left-0",
-            !readOnly && currentTool === "pen" && "cursor-crosshair",
-            !readOnly && currentTool === "text" && "cursor-text",
-            !readOnly && currentTool === "sticky-note" && "cursor-pointer",
+      <div className="flex justify-center">
+        <div
+          ref={containerRef}
+          className="relative border rounded-lg overflow-hidden shadow-sm"
+          style={{ width: Math.min(width, 800), height: Math.min(height, 600) }}
+        >
+          <canvas
+            ref={canvasRef}
+            width={Math.min(width, 800)}
+            height={Math.min(height, 600)}
+            className={cn(
+              "absolute top-0 left-0 bg-white",
+              !readOnly && currentTool === "pen" && "cursor-crosshair",
+              !readOnly && currentTool === "text" && "cursor-text",
+              !readOnly && currentTool === "sticky-note" && "cursor-pointer",
+              !readOnly && currentTool === "select" && "cursor-pointer",
+            )}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          />
+
+          {/* Render sticky notes and text elements */}
+          {elements.map((element) => {
+            if (element.type === "sticky-note") {
+              return (
+                <div
+                  key={element.id}
+                  className={cn(
+                    "absolute p-3 rounded shadow-md text-sm cursor-pointer transition-all",
+                    selectedElement === element.id && "ring-2 ring-blue-500 ring-offset-2",
+                  )}
+                  style={{
+                    left: element.x,
+                    top: element.y,
+                    width: element.width,
+                    height: element.height,
+                    backgroundColor: element.color,
+                    border: "1px solid #d1d5db",
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (currentTool === "select") {
+                      setSelectedElement(element.id)
+                    }
+                  }}
+                >
+                  {element.content}
+                </div>
+              )
+            }
+
+            if (element.type === "text") {
+              return (
+                <div
+                  key={element.id}
+                  className={cn(
+                    "absolute text-sm font-medium cursor-pointer transition-all",
+                    selectedElement === element.id && "ring-2 ring-blue-500 ring-offset-2 bg-blue-50 px-1 rounded",
+                  )}
+                  style={{
+                    left: element.x,
+                    top: element.y,
+                    color: element.color,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (currentTool === "select") {
+                      setSelectedElement(element.id)
+                    }
+                  }}
+                >
+                  {element.content}
+                </div>
+              )
+            }
+
+            return null
+          })}
+
+          {/* Text input overlay */}
+          {showTextInput && (
+            <div
+              className="absolute z-10"
+              style={{
+                left: textInputPosition.x,
+                top: textInputPosition.y,
+              }}
+            >
+              <Card className="p-2">
+                <Input
+                  value={textInputValue}
+                  onChange={(e) => setTextInputValue(e.target.value)}
+                  placeholder="Enter text..."
+                  className="mb-2"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleTextSubmit()
+                    } else if (e.key === "Escape") {
+                      setShowTextInput(false)
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleTextSubmit()
+                    }}
+                    type="button"
+                  >
+                    Add
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setShowTextInput(false)
+                    }}
+                    type="button"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </Card>
+            </div>
           )}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        />
 
-        {/* Render sticky notes and text elements */}
-        {elements.map((element) => {
-          if (element.type === "sticky-note") {
-            return (
-              <div
-                key={element.id}
-                className="absolute p-3 rounded shadow-md text-sm"
-                style={{
-                  left: element.x,
-                  top: element.y,
-                  width: element.width,
-                  height: element.height,
-                  backgroundColor: element.color,
-                  border: "1px solid #d1d5db",
-                }}
-              >
-                {element.content}
-              </div>
-            )
-          }
-
-          if (element.type === "text") {
-            return (
-              <div
-                key={element.id}
-                className="absolute text-sm font-medium"
-                style={{
-                  left: element.x,
-                  top: element.y,
-                  color: element.color,
-                }}
-              >
-                {element.content}
-              </div>
-            )
-          }
-
-          return null
-        })}
-
-        {/* Text input overlay */}
-        {showTextInput && (
-          <div
-            className="absolute z-10"
-            style={{
-              left: textInputPosition.x,
-              top: textInputPosition.y,
-            }}
-          >
-            <Card className="p-2">
-              <Input
-                value={textInputValue}
-                onChange={(e) => setTextInputValue(e.target.value)}
-                placeholder="Enter text..."
-                className="mb-2"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleTextSubmit()
-                  } else if (e.key === "Escape") {
-                    setShowTextInput(false)
-                  }
-                }}
-              />
-              <div className="flex gap-2">
-                <Button size="sm" onClick={handleTextSubmit}>
-                  Add
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setShowTextInput(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Sticky note input overlay */}
-        {showStickyNoteInput && (
-          <div
-            className="absolute z-10"
-            style={{
-              left: stickyNotePosition.x,
-              top: stickyNotePosition.y,
-            }}
-          >
-            <Card className="p-2 w-64">
-              <Textarea
-                value={stickyNoteValue}
-                onChange={(e) => setStickyNoteValue(e.target.value)}
-                placeholder="Enter sticky note content..."
-                className="mb-2"
-                rows={3}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setShowStickyNoteInput(false)
-                  }
-                }}
-              />
-              <div className="flex gap-2">
-                <Button size="sm" onClick={handleStickyNoteSubmit}>
-                  Add Note
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setShowStickyNoteInput(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </Card>
-          </div>
-        )}
+          {/* Sticky note input overlay */}
+          {showStickyNoteInput && (
+            <div
+              className="absolute z-10"
+              style={{
+                left: stickyNotePosition.x,
+                top: stickyNotePosition.y,
+              }}
+            >
+              <Card className="p-2 w-64">
+                <Textarea
+                  value={stickyNoteValue}
+                  onChange={(e) => setStickyNoteValue(e.target.value)}
+                  placeholder="Enter sticky note content..."
+                  className="mb-2"
+                  rows={3}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setShowStickyNoteInput(false)
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleStickyNoteSubmit()
+                    }}
+                    type="button"
+                  >
+                    Add Note
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setShowStickyNoteInput(false)
+                    }}
+                    type="button"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
