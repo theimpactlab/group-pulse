@@ -400,17 +400,29 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     )
   }
 
+  const currentPoll = getCurrentPoll()
+
   return (
-    <div className="container mx-auto py-10 max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>{session.title || "Interactive Session"}</CardTitle>
-          <CardDescription>
-            Session Code: <span className="font-mono font-bold">{session.code || params.id}</span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>{renderPollContent()}</CardContent>
-      </Card>
+    <div className={currentPoll?.type === "whiteboard" ? "h-screen" : "container mx-auto py-10 max-w-2xl"}>
+      {currentPoll?.type === "whiteboard" ? (
+        <WhiteboardParticipant
+          poll={currentPoll}
+          sessionId={session.id}
+          participantId={`participant_${Date.now()}`}
+          participantName="Anonymous"
+          onResponse={handleSubmitResponse}
+        />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{session.title || "Interactive Session"}</CardTitle>
+            <CardDescription>
+              Session Code: <span className="font-mono font-bold">{session.code || params.id}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>{renderPollContent()}</CardContent>
+        </Card>
+      )}
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, BarChart3, PieChart, CloudRain, MessageSquare, SlidersHorizontal, Coins } from "lucide-react"
 import { supabase } from "@/lib/supabase" // Use the singleton
 import type { PollType } from "@/types/poll-types"
+import WhiteboardCanvas from "@/components/whiteboard-canvas"
 
 export default function PublicResultsPage() {
   const params = useParams()
@@ -231,6 +232,8 @@ export default function PublicResultsPage() {
         return renderImageChoiceResults(poll, pollResponses)
       case "points-allocation":
         return renderPointsAllocationResults(poll, pollResponses)
+      case "whiteboard":
+        return renderWhiteboardResults(poll, pollResponses)
       default:
         return <div>Unsupported poll type</div>
     }
@@ -732,6 +735,126 @@ export default function PublicResultsPage() {
     )
   }
 
+  const renderWhiteboardResults = (poll: any, pollResponses: any[]) => {
+    // Aggregate all whiteboard elements from all participants
+    const allElements: any[] = []
+    const participantColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899"]
+
+    pollResponses.forEach((response, participantIndex) => {
+      const participantColor = participantColors[participantIndex % participantColors.length]
+
+      if (response.response?.elements && Array.isArray(response.response.elements)) {
+        response.response.elements.forEach((element: any) => {
+          allElements.push({
+            ...element,
+            participantId: response.participant_id || `participant-${participantIndex}`,
+            participantName: response.participant_name || `Participant ${participantIndex + 1}`,
+            participantColor: participantColor,
+          })
+        })
+      }
+    })
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">{String(poll.data.title)}</h3>
+          <div className="text-sm text-muted-foreground">
+            {pollResponses.length} participant{pollResponses.length !== 1 ? "s" : ""} • {allElements.length} elements
+          </div>
+        </div>
+
+        {poll.data.instructions && <p className="text-muted-foreground">{String(poll.data.instructions)}</p>}
+
+        {/* Participant Legend */}
+        <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
+          <span className="text-sm font-medium mr-2">Participants:</span>
+          {pollResponses.map((response, index) => (
+            <div key={response.id || index} className="flex items-center gap-1">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: participantColors[index % participantColors.length] }}
+              />
+              <span className="text-xs">{response.participant_name || `Participant ${index + 1}`}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Collaborative Whiteboard Display */}
+        <div className="border rounded-lg overflow-hidden bg-white">
+          <div className="p-4 border-b bg-gray-50">
+            <h4 className="font-medium">Collaborative Whiteboard Results</h4>
+            <p className="text-sm text-muted-foreground">Combined contributions from all participants</p>
+          </div>
+
+          <div className="p-4">
+            <WhiteboardCanvas
+              width={Math.max(poll.data.canvasWidth || 1200, 1200)}
+              height={Math.max(poll.data.canvasHeight || 700, 700)}
+              backgroundColor={poll.data.backgroundColor || "#ffffff"}
+              allowDrawing={false}
+              allowStickyNotes={false}
+              allowText={false}
+              readOnly={true}
+              elements={allElements}
+            />
+          </div>
+        </div>
+
+        {/* Individual Participant Contributions */}
+        <div className="space-y-4">
+          <h4 className="font-medium">Individual Contributions</h4>
+          <div className="grid gap-4 md:grid-cols-2">
+            {pollResponses.map((response, index) => {
+              const participantElements = response.response?.elements || []
+              const participantColor = participantColors[index % participantColors.length]
+
+              return (
+                <div key={response.id || index} className="border rounded-lg overflow-hidden">
+                  <div className="p-3 border-b bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: participantColor }} />
+                      <span className="font-medium">{response.participant_name || `Participant ${index + 1}`}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({participantElements.length} element{participantElements.length !== 1 ? "s" : ""})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3">
+                    {participantElements.length > 0 ? (
+                      <div className="space-y-2">
+                        {participantElements.map((element: any, elemIndex: number) => (
+                          <div key={elemIndex} className="text-sm p-2 bg-gray-50 rounded">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium capitalize">{element.type.replace("-", " ")}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {element.timestamp && new Date(element.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            {element.content && <p className="mt-1 text-muted-foreground">{element.content}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No contributions from this participant
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Total responses: {pollResponses.length} • Total elements: {allElements.length}
+        </p>
+      </div>
+    )
+  }
+
   // Show loading state
   if (isLoading) {
     return (
@@ -857,6 +980,7 @@ export default function PublicResultsPage() {
                       {poll.type === "quiz" && `Quiz: ${String(poll.data.question)}`}
                       {poll.type === "image-choice" && `Image Choice: ${String(poll.data.question)}`}
                       {poll.type === "points-allocation" && `Points Allocation: ${String(poll.data.question)}`}
+                      {poll.type === "whiteboard" && `Whiteboard: ${String(poll.data.title)}`}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -872,6 +996,7 @@ export default function PublicResultsPage() {
                         {poll.type === "quiz" && <BarChart3 className="h-5 w-5 text-indigo-500" />}
                         {poll.type === "image-choice" && <PieChart className="h-5 w-5 text-pink-500" />}
                         {poll.type === "points-allocation" && <Coins className="h-5 w-5 text-orange-500" />}
+                        {poll.type === "whiteboard" && <Coins className="h-5 w-5 text-gray-500" />}
                         <span className="capitalize">{poll.type.replace(/-/g, " ")}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">{getResponseCountForPoll(poll.id)} responses</div>

@@ -37,7 +37,7 @@ interface WhiteboardCanvasProps {
 
 type Tool = "select" | "pen" | "sticky-note" | "text" | "eraser"
 
-export function WhiteboardCanvas({
+const WhiteboardCanvas = ({
   width,
   height,
   backgroundColor,
@@ -47,7 +47,7 @@ export function WhiteboardCanvas({
   readOnly = false,
   elements = [],
   onElementsChange,
-}: WhiteboardCanvasProps) {
+}: WhiteboardCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [currentTool, setCurrentTool] = useState<Tool>("select")
@@ -692,3 +692,6 @@ export function WhiteboardCanvas({
     </div>
   )
 }
+
+export { WhiteboardCanvas }
+export default WhiteboardCanvas
