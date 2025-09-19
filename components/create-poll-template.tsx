@@ -136,6 +136,22 @@ export function createPollTemplate(type: string): PollType {
           maxPointsPerOption: 100,
         },
       }
+    case "whiteboard":
+      return {
+        id,
+        type: "whiteboard",
+        data: {
+          title: "Collaborative Whiteboard",
+          instructions: "Use the tools to draw, add sticky notes, and collaborate with others!",
+          canvasWidth: 1200,
+          canvasHeight: 800,
+          allowDrawing: true,
+          allowStickyNotes: true,
+          allowText: true,
+          backgroundColor: "#ffffff",
+          maxParticipants: 50,
+        },
+      }
     default:
       throw new Error(`Unknown poll type: ${type}`)
   }
