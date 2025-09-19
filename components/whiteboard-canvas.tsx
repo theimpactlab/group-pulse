@@ -164,10 +164,12 @@ export function WhiteboardCanvas({
     e.stopPropagation()
 
     const pos = getMousePosition(e)
+    console.log("[v0] Mouse down at:", pos, "Tool:", currentTool)
 
     if (currentTool === "select") {
       const clickedElement = getElementAtPosition(pos.x, pos.y)
       if (clickedElement) {
+        console.log("[v0] Selected element:", clickedElement.id)
         setSelectedElement(clickedElement.id)
         setIsDragging(true)
         setDragOffset({
@@ -178,15 +180,18 @@ export function WhiteboardCanvas({
         setSelectedElement(null)
       }
     } else if (currentTool === "pen" && allowDrawing) {
+      console.log("[v0] Starting to draw")
       setIsDrawing(true)
       setCurrentPath([pos])
       setSelectedElement(null)
     } else if (currentTool === "text" && allowText) {
+      console.log("[v0] Adding text at:", pos)
       setTextInputPosition(pos)
       setTextInputValue("")
       setShowTextInput(true)
       setSelectedElement(null)
     } else if (currentTool === "sticky-note" && allowStickyNotes) {
+      console.log("[v0] Adding sticky note at:", pos)
       setStickyNotePosition(pos)
       setStickyNoteValue("")
       setShowStickyNoteInput(true)
@@ -266,6 +271,7 @@ export function WhiteboardCanvas({
 
   const handleTextSubmit = () => {
     if (textInputValue.trim()) {
+      console.log("[v0] Adding text element:", textInputValue)
       const newElement: WhiteboardElement = {
         id: Date.now().toString(),
         type: "text",
@@ -284,6 +290,7 @@ export function WhiteboardCanvas({
 
   const handleStickyNoteSubmit = () => {
     if (stickyNoteValue.trim()) {
+      console.log("[v0] Adding sticky note element:", stickyNoteValue)
       const newElement: WhiteboardElement = {
         id: Date.now().toString(),
         type: "sticky-note",
@@ -346,14 +353,15 @@ export function WhiteboardCanvas({
   useEffect(() => {
     const updateCanvasSize = () => {
       if (containerRef.current) {
-        const container = containerRef.current
-        const rect = container.getBoundingClientRect()
-        const maxWidth = Math.min(window.innerWidth - 100, width) // Leave some margin
-        const maxHeight = Math.min(window.innerHeight - 300, height) // Leave space for UI
+        const availableWidth = window.innerWidth - 100 // Small margin
+        const availableHeight = window.innerHeight - 200 // Space for header and tools
+
+        console.log("[v0] Available space:", availableWidth, "x", availableHeight)
+        console.log("[v0] Requested size:", width, "x", height)
 
         setCanvasSize({
-          width: Math.max(800, maxWidth), // Minimum 800px width
-          height: Math.max(600, maxHeight), // Minimum 600px height
+          width: Math.max(1200, Math.min(availableWidth, width)), // Use more space, min 1200px
+          height: Math.max(700, Math.min(availableHeight, height)), // Use more space, min 700px
         })
       }
     }
@@ -497,15 +505,18 @@ export function WhiteboardCanvas({
       <div className="flex justify-center w-full">
         <div
           ref={containerRef}
-          className="relative border rounded-lg overflow-hidden shadow-sm w-full max-w-none"
-          style={{ maxHeight: "calc(100vh - 300px)" }}
+          className="relative border rounded-lg overflow-hidden shadow-sm w-full"
+          style={{
+            width: canvasSize.width,
+            height: canvasSize.height,
+          }}
         >
           <canvas
             ref={canvasRef}
             width={canvasSize.width}
             height={canvasSize.height}
             className={cn(
-              "absolute top-0 left-0 bg-white w-full h-auto",
+              "absolute top-0 left-0 bg-white",
               !readOnly && currentTool === "pen" && "cursor-crosshair",
               !readOnly && currentTool === "text" && "cursor-text",
               !readOnly && currentTool === "sticky-note" && "cursor-pointer",
