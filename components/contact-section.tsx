@@ -33,14 +33,13 @@ export function ContactSection() {
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Phone className="h-5 w-5 text-primary mr-3 mt-0.5" />
                   <div>
-                    <p className="font-medium">Phone</p>
+                    <p className="font-medium"></p>
                     <a
-                      href="tel:07787067808"
+                      href=""
                       className="text-muted-foreground hover:text-primary"
                     >
-                      07787067808
+                      
                     </a>
                   </div>
                 </div>
