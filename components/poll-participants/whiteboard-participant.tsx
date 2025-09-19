@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { WhiteboardCanvas } from "@/components/whiteboard-canvas"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Users } from "lucide-react"
 import type { WhiteboardPoll } from "@/types/poll-types"
 
@@ -41,10 +42,9 @@ export function WhiteboardParticipant({
   const [elements, setElements] = useState<WhiteboardElement[]>([])
   const [participantCount, setParticipantCount] = useState(1)
   const [isConnected, setIsConnected] = useState(true)
+  const [isSubmitted, setIsSubmitted] = useState(false)
 
-  // Simulate real-time collaboration (in a real app, this would use WebSockets)
   useEffect(() => {
-    // Simulate some initial elements from other participants
     const initialElements: WhiteboardElement[] = [
       {
         id: "demo-1",
@@ -73,11 +73,10 @@ export function WhiteboardParticipant({
     ]
 
     setElements(initialElements)
-    setParticipantCount(Math.floor(Math.random() * 8) + 3) // Simulate 3-10 participants
+    setParticipantCount(Math.floor(Math.random() * 8) + 3)
   }, [])
 
   const handleElementsChange = (newElements: WhiteboardElement[]) => {
-    // Add participant info to new elements
     const elementsWithParticipant = newElements.map((element) => {
       if (!element.participantId) {
         return {
@@ -91,15 +90,17 @@ export function WhiteboardParticipant({
     })
 
     setElements(elementsWithParticipant)
+  }
 
-    // Send response to parent component
+  const handleSubmitWhiteboard = () => {
     onResponse?.({
-      type: "whiteboard-update",
-      elements: elementsWithParticipant,
+      type: "whiteboard-final",
+      elements: elements,
       participantId,
       participantName,
       timestamp: new Date().toISOString(),
     })
+    setIsSubmitted(true)
   }
 
   return (
@@ -129,10 +130,14 @@ export function WhiteboardParticipant({
             elements={elements}
             onElementsChange={handleElementsChange}
           />
+          <div className="mt-4 flex justify-center">
+            <Button onClick={handleSubmitWhiteboard} disabled={isSubmitted} className="px-8">
+              {isSubmitted ? "Whiteboard Submitted" : "Submit Whiteboard"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Participant activity feed */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
