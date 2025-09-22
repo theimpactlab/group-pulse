@@ -30,7 +30,7 @@ export function AboutSection() {
           </div>
           <div className="relative h-[400px] rounded-lg overflow-hidden">
             <Image
-              src="https://ourimpact.co.uk/templaces/IMPACT_LAB_LOGO.png?height=800&width=600"
+              src="https://ourimpact.co.uk/templates/IMPACT_LAB_LOGO.png?height=800&width=600"
               alt="theimpactlab"
               fill
               className="object-cover"
