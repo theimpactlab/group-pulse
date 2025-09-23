@@ -112,6 +112,8 @@ const WhiteboardCanvas = ({
 
   const addElement = useCallback(
     (newElement: WhiteboardElement) => {
+      console.log("[v0] Adding element:", newElement.id, "Type:", newElement.type)
+
       if (enableRealtime) {
         broadcastElement(newElement)
       } else {
@@ -324,10 +326,14 @@ const WhiteboardCanvas = ({
     if (isDragging) {
       setIsDragging(false)
       // Add to history when drag is complete
-      addToHistory(activeElements)
+      if (!enableRealtime) {
+        addToHistory(activeElements)
+      }
     }
 
     if (isDrawing && currentPath.length > 0) {
+      console.log("[v0] Finishing drawing with", currentPath.length, "points")
+
       const newElement: WhiteboardElement = {
         id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: "drawing",

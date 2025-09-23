@@ -37,40 +37,30 @@ export function useRealtimeWhiteboard(
   const intervalRef = useRef<NodeJS.Timeout>()
   const lastSyncRef = useRef<number>(0)
   const lastBroadcastRef = useRef<number>(0)
-  const pendingElementsRef = useRef<WhiteboardElement[]>([])
   const broadcastTimeoutRef = useRef<NodeJS.Timeout>()
 
   const elementsKey = `whiteboard_elements_${pollId}`
   const participantsKey = `whiteboard_participants_${pollId}`
   const heartbeatKey = `whiteboard_heartbeat_${pollId}_${participantId}`
 
-  const throttledBroadcast = useCallback(() => {
-    if (pendingElementsRef.current.length === 0) return
+  const throttledBroadcast = useCallback(
+    (elementsToSave: WhiteboardElement[]) => {
+      const currentTime = Date.now()
+      if (currentTime - lastBroadcastRef.current < 100) {
+        // Throttle to max 10 updates per second
+        return
+      }
 
-    const currentTime = Date.now()
-    if (currentTime - lastBroadcastRef.current < 100) {
-      // Throttle to max 10 updates per second
-      return
-    }
-
-    try {
-      localStorage.setItem(elementsKey, JSON.stringify(pendingElementsRef.current))
-      lastBroadcastRef.current = currentTime
-      console.log("[v0] Throttled broadcast:", pendingElementsRef.current.length, "elements")
-    } catch (error) {
-      console.error("[v0] Error broadcasting elements:", error)
-    }
-  }, [elementsKey])
-
-  const debouncedBroadcast = useCallback(() => {
-    if (broadcastTimeoutRef.current) {
-      clearTimeout(broadcastTimeoutRef.current)
-    }
-
-    broadcastTimeoutRef.current = setTimeout(() => {
-      throttledBroadcast()
-    }, 50) // 50ms debounce
-  }, [throttledBroadcast])
+      try {
+        localStorage.setItem(elementsKey, JSON.stringify(elementsToSave))
+        lastBroadcastRef.current = currentTime
+        console.log("[v0] Broadcasted elements:", elementsToSave.length)
+      } catch (error) {
+        console.error("[v0] Error broadcasting elements:", error)
+      }
+    },
+    [elementsKey],
+  )
 
   const broadcastElement = useCallback(
     (element: WhiteboardElement) => {
@@ -81,20 +71,24 @@ export function useRealtimeWhiteboard(
         timestamp: Date.now(),
       }
 
-      // Get existing elements from storage
-      const existingElements = JSON.parse(localStorage.getItem(elementsKey) || "[]")
-      const updatedElements = [...existingElements, enhancedElement]
+      console.log("[v0] Broadcasting new element:", enhancedElement.id)
 
-      // Update pending elements for throttled broadcast
-      pendingElementsRef.current = updatedElements
-      setElements(updatedElements)
+      setElements((currentElements) => {
+        const updatedElements = [...currentElements, enhancedElement]
 
-      // Use debounced broadcast for single elements
-      debouncedBroadcast()
+        // Broadcast the updated elements
+        if (broadcastTimeoutRef.current) {
+          clearTimeout(broadcastTimeoutRef.current)
+        }
 
-      console.log("[v0] Queued element for broadcast:", enhancedElement.id)
+        broadcastTimeoutRef.current = setTimeout(() => {
+          throttledBroadcast(updatedElements)
+        }, 50)
+
+        return updatedElements
+      })
     },
-    [pollId, participantId, participantName, elementsKey, debouncedBroadcast],
+    [participantId, participantName, throttledBroadcast],
   )
 
   const broadcastElements = useCallback(
@@ -106,15 +100,14 @@ export function useRealtimeWhiteboard(
         timestamp: element.timestamp || Date.now(),
       }))
 
-      pendingElementsRef.current = enhancedElements
+      console.log("[v0] Broadcasting bulk elements:", enhancedElements.length)
+
       setElements(enhancedElements)
 
-      // Immediate broadcast for bulk updates (like undo/redo)
-      throttledBroadcast()
-
-      console.log("[v0] Broadcasted bulk elements:", enhancedElements.length)
+      // Immediate broadcast for bulk updates
+      throttledBroadcast(enhancedElements)
     },
-    [pollId, participantId, participantName, throttledBroadcast],
+    [participantId, participantName, throttledBroadcast],
   )
 
   const syncElements = useCallback(() => {
@@ -122,35 +115,23 @@ export function useRealtimeWhiteboard(
       const storedElements = localStorage.getItem(elementsKey)
       if (!storedElements) return
 
-      const parsedElements = JSON.parse(storedElements)
-      const currentTime = Date.now()
+      const parsedElements = JSON.parse(storedElements) as WhiteboardElement[]
 
-      // Check if there are any new elements since last sync
-      const hasNewElements = parsedElements.some((el: WhiteboardElement) => (el.timestamp || 0) > lastSyncRef.current)
-
-      if (hasNewElements) {
-        // Only update if elements actually changed
-        const currentElementsStr = JSON.stringify(elements)
-        const newElementsStr = JSON.stringify(parsedElements)
+      setElements((currentElements) => {
+        const currentElementsStr = JSON.stringify(currentElements.sort((a, b) => a.id.localeCompare(b.id)))
+        const newElementsStr = JSON.stringify(parsedElements.sort((a, b) => a.id.localeCompare(b.id)))
 
         if (currentElementsStr !== newElementsStr) {
-          setElements(parsedElements)
-          pendingElementsRef.current = parsedElements
-          lastSyncRef.current = currentTime
-
-          const newCount = parsedElements.filter(
-            (el: WhiteboardElement) => (el.timestamp || 0) > lastSyncRef.current - 1000,
-          ).length
-
-          if (newCount > 0) {
-            console.log("[v0] Synced", newCount, "new elements")
-          }
+          console.log("[v0] Syncing elements:", parsedElements.length, "total")
+          return parsedElements
         }
-      }
+
+        return currentElements
+      })
     } catch (error) {
       console.error("[v0] Error syncing elements:", error)
     }
-  }, [elementsKey, elements])
+  }, [elementsKey])
 
   const updateHeartbeat = useCallback(() => {
     const currentTime = Date.now()
@@ -186,27 +167,34 @@ export function useRealtimeWhiteboard(
       activeParticipants.push(participantId)
 
       // Only update if participant list changed
-      if (JSON.stringify(activeParticipants.sort()) !== JSON.stringify(connectedParticipants.sort())) {
-        setConnectedParticipants(activeParticipants)
-        console.log("[v0] Participant list updated:", activeParticipants.length, "active")
-      }
+      setConnectedParticipants((currentParticipants) => {
+        const currentSorted = currentParticipants.sort().join(",")
+        const newSorted = activeParticipants.sort().join(",")
+
+        if (currentSorted !== newSorted) {
+          console.log("[v0] Participant list updated:", activeParticipants.length, "active")
+          return activeParticipants
+        }
+
+        return currentParticipants
+      })
 
       setIsConnected(true)
     } catch (error) {
       console.error("[v0] Error updating heartbeat:", error)
       setIsConnected(false)
     }
-  }, [pollId, participantId, heartbeatKey, connectedParticipants])
+  }, [pollId, participantId, heartbeatKey])
 
   useEffect(() => {
-    console.log("[v0] Initializing optimized real-time whiteboard for poll:", pollId)
+    console.log("[v0] Initializing real-time whiteboard for poll:", pollId)
 
     // Initial sync
     syncElements()
     updateHeartbeat()
 
-    // Set up optimized polling intervals
-    const syncInterval = setInterval(syncElements, 500) // Sync every 500ms for responsiveness
+    // Set up polling intervals
+    const syncInterval = setInterval(syncElements, 1000) // Sync every second
     const heartbeatInterval = setInterval(updateHeartbeat, 3000) // Heartbeat every 3 seconds
 
     // Store intervals for cleanup
@@ -234,17 +222,19 @@ export function useRealtimeWhiteboard(
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === elementsKey && e.newValue) {
         try {
-          const newElements = JSON.parse(e.newValue)
+          const newElements = JSON.parse(e.newValue) as WhiteboardElement[]
 
-          // Only update if elements actually changed
-          const currentElementsStr = JSON.stringify(elements)
-          const newElementsStr = e.newValue
+          setElements((currentElements) => {
+            const currentElementsStr = JSON.stringify(currentElements.sort((a, b) => a.id.localeCompare(b.id)))
+            const newElementsStr = JSON.stringify(newElements.sort((a, b) => a.id.localeCompare(b.id)))
 
-          if (currentElementsStr !== newElementsStr) {
-            setElements(newElements)
-            pendingElementsRef.current = newElements
-            console.log("[v0] Received optimized storage update:", newElements.length, "elements")
-          }
+            if (currentElementsStr !== newElementsStr) {
+              console.log("[v0] Received storage update:", newElements.length, "elements")
+              return newElements
+            }
+
+            return currentElements
+          })
         } catch (error) {
           console.error("[v0] Error parsing storage update:", error)
         }
@@ -253,7 +243,7 @@ export function useRealtimeWhiteboard(
 
     window.addEventListener("storage", handleStorageChange)
     return () => window.removeEventListener("storage", handleStorageChange)
-  }, [elementsKey, elements])
+  }, [elementsKey])
 
   useEffect(() => {
     return () => {
