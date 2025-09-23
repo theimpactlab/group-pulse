@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { Pen, Type, Trash2, Download, Undo, Redo, MousePointer, StickyNote } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useRealtimeWhiteboard } from "@/hooks/use-realtime-whiteboard"
 
 interface WhiteboardElement {
   id: string
@@ -21,6 +22,9 @@ interface WhiteboardElement {
   color?: string
   strokeWidth?: number
   path?: { x: number; y: number }[]
+  participantId?: string
+  participantName?: string
+  timestamp?: number
 }
 
 interface WhiteboardCanvasProps {
@@ -33,6 +37,10 @@ interface WhiteboardCanvasProps {
   readOnly?: boolean
   elements?: WhiteboardElement[]
   onElementsChange?: (elements: WhiteboardElement[]) => void
+  pollId?: string
+  participantId?: string
+  participantName?: string
+  enableRealtime?: boolean
 }
 
 type Tool = "select" | "pen" | "sticky-note" | "text" | "eraser"
@@ -47,6 +55,10 @@ const WhiteboardCanvas = ({
   readOnly = false,
   elements = [],
   onElementsChange,
+  pollId = "",
+  participantId = "",
+  participantName = "",
+  enableRealtime = false,
 }: WhiteboardCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -66,6 +78,16 @@ const WhiteboardCanvas = ({
   const [historyIndex, setHistoryIndex] = useState(0)
   const [canvasSize, setCanvasSize] = useState({ width: width, height: height })
 
+  const {
+    elements: realtimeElements,
+    broadcastElement,
+    broadcastElements,
+    connectedParticipants,
+    isConnected,
+  } = useRealtimeWhiteboard(pollId, participantId, participantName)
+
+  const activeElements = enableRealtime ? realtimeElements : elements
+
   const addToHistory = useCallback(
     (newElements: WhiteboardElement[]) => {
       const newHistory = history.slice(0, historyIndex + 1)
@@ -78,10 +100,45 @@ const WhiteboardCanvas = ({
 
   const updateElements = useCallback(
     (newElements: WhiteboardElement[]) => {
-      onElementsChange?.(newElements)
+      if (enableRealtime) {
+        broadcastElements(newElements)
+      } else {
+        onElementsChange?.(newElements)
+      }
       addToHistory(newElements)
     },
-    [onElementsChange, addToHistory],
+    [enableRealtime, broadcastElements, onElementsChange, addToHistory],
+  )
+
+  const addElement = useCallback(
+    (newElement: WhiteboardElement) => {
+      if (enableRealtime) {
+        broadcastElement(newElement)
+      } else {
+        const newElements = [...activeElements, newElement]
+        onElementsChange?.(newElements)
+        addToHistory(newElements)
+      }
+    },
+    [enableRealtime, broadcastElement, activeElements, onElementsChange, addToHistory],
+  )
+
+  const getParticipantColor = useCallback(
+    (participantId: string) => {
+      const colors = [
+        "#ef4444", // red
+        "#3b82f6", // blue
+        "#10b981", // green
+        "#f59e0b", // yellow
+        "#8b5cf6", // purple
+        "#ec4899", // pink
+        "#06b6d4", // cyan
+        "#84cc16", // lime
+      ]
+      const index = connectedParticipants.indexOf(participantId) % colors.length
+      return colors[index]
+    },
+    [connectedParticipants],
   )
 
   const drawCanvas = useCallback(() => {
@@ -95,9 +152,14 @@ const WhiteboardCanvas = ({
     ctx.fillRect(0, 0, canvasSize.width, canvasSize.height)
 
     // Draw all elements
-    elements.forEach((element) => {
+    activeElements.forEach((element) => {
       if (element.type === "drawing" && element.path) {
-        ctx.strokeStyle = element.color || "#000000"
+        const elementColor =
+          enableRealtime && element.participantId
+            ? getParticipantColor(element.participantId)
+            : element.color || "#000000"
+
+        ctx.strokeStyle = elementColor
         ctx.lineWidth = element.strokeWidth || 2
         ctx.lineCap = "round"
         ctx.lineJoin = "round"
@@ -115,7 +177,7 @@ const WhiteboardCanvas = ({
     })
 
     if (selectedElement) {
-      const element = elements.find((e) => e.id === selectedElement)
+      const element = activeElements.find((e) => e.id === selectedElement)
       if (element && element.type !== "drawing") {
         ctx.strokeStyle = "#3b82f6"
         ctx.lineWidth = 2
@@ -124,7 +186,15 @@ const WhiteboardCanvas = ({
         ctx.setLineDash([])
       }
     }
-  }, [elements, backgroundColor, canvasSize.width, canvasSize.height, selectedElement])
+  }, [
+    activeElements,
+    backgroundColor,
+    canvasSize.width,
+    canvasSize.height,
+    selectedElement,
+    enableRealtime,
+    getParticipantColor,
+  ])
 
   useEffect(() => {
     drawCanvas()
@@ -143,8 +213,8 @@ const WhiteboardCanvas = ({
 
   const getElementAtPosition = (x: number, y: number): WhiteboardElement | null => {
     // Check in reverse order (top to bottom)
-    for (let i = elements.length - 1; i >= 0; i--) {
-      const element = elements[i]
+    for (let i = activeElements.length - 1; i >= 0; i--) {
+      const element = activeElements[i]
       if (element.type === "sticky-note" || element.type === "text") {
         const elementWidth = element.width || (element.type === "text" ? 100 : 200)
         const elementHeight = element.height || (element.type === "text" ? 30 : 150)
@@ -205,7 +275,7 @@ const WhiteboardCanvas = ({
     const pos = getMousePosition(e)
 
     if (isDragging && selectedElement && currentTool === "select") {
-      const newElements = elements.map((element) => {
+      const newElements = activeElements.map((element) => {
         if (element.id === selectedElement) {
           return {
             ...element,
@@ -215,7 +285,12 @@ const WhiteboardCanvas = ({
         }
         return element
       })
-      onElementsChange?.(newElements)
+
+      if (enableRealtime) {
+        broadcastElements(newElements)
+      } else {
+        onElementsChange?.(newElements)
+      }
       return
     }
 
@@ -230,7 +305,8 @@ const WhiteboardCanvas = ({
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    ctx.strokeStyle = "#000000"
+    const drawColor = enableRealtime ? getParticipantColor(participantId) : "#000000"
+    ctx.strokeStyle = drawColor
     ctx.lineWidth = 2
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
@@ -248,21 +324,24 @@ const WhiteboardCanvas = ({
     if (isDragging) {
       setIsDragging(false)
       // Add to history when drag is complete
-      addToHistory(elements)
+      addToHistory(activeElements)
     }
 
     if (isDrawing && currentPath.length > 0) {
       const newElement: WhiteboardElement = {
-        id: Date.now().toString(),
+        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: "drawing",
         x: Math.min(...currentPath.map((p) => p.x)),
         y: Math.min(...currentPath.map((p) => p.y)),
         path: currentPath,
-        color: "#000000",
+        color: enableRealtime ? getParticipantColor(participantId) : "#000000",
         strokeWidth: 2,
+        participantId: enableRealtime ? participantId : undefined,
+        participantName: enableRealtime ? participantName : undefined,
+        timestamp: Date.now(),
       }
 
-      updateElements([...elements, newElement])
+      addElement(newElement)
     }
 
     setIsDrawing(false)
@@ -273,15 +352,18 @@ const WhiteboardCanvas = ({
     if (textInputValue.trim()) {
       console.log("[v0] Adding text element:", textInputValue)
       const newElement: WhiteboardElement = {
-        id: Date.now().toString(),
+        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: "text",
         x: textInputPosition.x,
         y: textInputPosition.y,
         content: textInputValue,
-        color: "#000000",
+        color: enableRealtime ? getParticipantColor(participantId) : "#000000",
+        participantId: enableRealtime ? participantId : undefined,
+        participantName: enableRealtime ? participantName : undefined,
+        timestamp: Date.now(),
       }
 
-      updateElements([...elements, newElement])
+      addElement(newElement)
     }
 
     setShowTextInput(false)
@@ -292,7 +374,7 @@ const WhiteboardCanvas = ({
     if (stickyNoteValue.trim()) {
       console.log("[v0] Adding sticky note element:", stickyNoteValue)
       const newElement: WhiteboardElement = {
-        id: Date.now().toString(),
+        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: "sticky-note",
         x: stickyNotePosition.x,
         y: stickyNotePosition.y,
@@ -300,9 +382,12 @@ const WhiteboardCanvas = ({
         height: 150,
         content: stickyNoteValue,
         color: "#fef08a", // Yellow sticky note
+        participantId: enableRealtime ? participantId : undefined,
+        participantName: enableRealtime ? participantName : undefined,
+        timestamp: Date.now(),
       }
 
-      updateElements([...elements, newElement])
+      addElement(newElement)
     }
 
     setShowStickyNoteInput(false)
@@ -311,7 +396,7 @@ const WhiteboardCanvas = ({
 
   const deleteSelectedElement = () => {
     if (selectedElement) {
-      const newElements = elements.filter((element) => element.id !== selectedElement)
+      const newElements = activeElements.filter((element) => element.id !== selectedElement)
       updateElements(newElements)
       setSelectedElement(null)
     }
@@ -326,7 +411,11 @@ const WhiteboardCanvas = ({
     if (historyIndex > 0) {
       setHistoryIndex(historyIndex - 1)
       const previousElements = history[historyIndex - 1]
-      onElementsChange?.(previousElements)
+      if (enableRealtime) {
+        broadcastElements(previousElements)
+      } else {
+        onElementsChange?.(previousElements)
+      }
       setSelectedElement(null)
     }
   }
@@ -335,7 +424,11 @@ const WhiteboardCanvas = ({
     if (historyIndex < history.length - 1) {
       setHistoryIndex(historyIndex + 1)
       const nextElements = history[historyIndex + 1]
-      onElementsChange?.(nextElements)
+      if (enableRealtime) {
+        broadcastElements(nextElements)
+      } else {
+        onElementsChange?.(nextElements)
+      }
       setSelectedElement(null)
     }
   }
@@ -373,6 +466,31 @@ const WhiteboardCanvas = ({
 
   return (
     <div className="flex flex-col space-y-4">
+      {enableRealtime && (
+        <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className={cn("w-2 h-2 rounded-full", isConnected ? "bg-green-500" : "bg-red-500")} />
+            <span className="text-sm font-medium">{isConnected ? "Connected" : "Disconnected"}</span>
+            <span className="text-sm text-muted-foreground">
+              {connectedParticipants.length} participant{connectedParticipants.length !== 1 ? "s" : ""} online
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            {connectedParticipants.slice(0, 5).map((id, index) => (
+              <div
+                key={id}
+                className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
+                style={{ backgroundColor: getParticipantColor(id) }}
+                title={`Participant ${id}`}
+              />
+            ))}
+            {connectedParticipants.length > 5 && (
+              <span className="text-xs text-muted-foreground ml-1">+{connectedParticipants.length - 5}</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {!readOnly && (
         <div className="flex flex-wrap gap-2 p-4 bg-muted/50 rounded-lg">
           <Button
@@ -529,7 +647,7 @@ const WhiteboardCanvas = ({
           />
 
           {/* Render sticky notes and text elements */}
-          {elements.map((element) => {
+          {activeElements.map((element) => {
             if (element.type === "sticky-note") {
               return (
                 <div
@@ -554,6 +672,9 @@ const WhiteboardCanvas = ({
                   }}
                 >
                   {element.content}
+                  {enableRealtime && element.participantName && (
+                    <div className="text-xs text-gray-500 mt-1 border-t pt-1">{element.participantName}</div>
+                  )}
                 </div>
               )
             }
@@ -579,6 +700,9 @@ const WhiteboardCanvas = ({
                   }}
                 >
                   {element.content}
+                  {enableRealtime && element.participantName && (
+                    <div className="text-xs text-gray-400 ml-2 inline">({element.participantName})</div>
+                  )}
                 </div>
               )
             }
