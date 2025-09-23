@@ -43,6 +43,17 @@ export function useRealtimeWhiteboard(
   const participantsKey = `whiteboard_participants_${pollId}`
   const heartbeatKey = `whiteboard_heartbeat_${pollId}_${participantId}`
 
+  const dispatchWhiteboardUpdate = useCallback(
+    (elements: WhiteboardElement[]) => {
+      const event = new CustomEvent("whiteboard-update", {
+        detail: { pollId, elements, participantId },
+      })
+      window.dispatchEvent(event)
+      console.log("[v0] Dispatched whiteboard update event with", elements.length, "elements")
+    },
+    [pollId, participantId],
+  )
+
   const throttledBroadcast = useCallback(
     (elementsToSave: WhiteboardElement[]) => {
       const currentTime = Date.now()
@@ -54,12 +65,15 @@ export function useRealtimeWhiteboard(
       try {
         localStorage.setItem(elementsKey, JSON.stringify(elementsToSave))
         lastBroadcastRef.current = currentTime
+
+        dispatchWhiteboardUpdate(elementsToSave)
+
         console.log("[v0] Broadcasted elements:", elementsToSave.length)
       } catch (error) {
         console.error("[v0] Error broadcasting elements:", error)
       }
     },
-    [elementsKey],
+    [elementsKey, dispatchWhiteboardUpdate],
   )
 
   const broadcastElement = useCallback(
@@ -71,19 +85,12 @@ export function useRealtimeWhiteboard(
         timestamp: Date.now(),
       }
 
-      console.log("[v0] Broadcasting new element:", enhancedElement.id)
+      console.log("[v0] Broadcasting new element:", enhancedElement.id, "from participant:", participantId)
 
       setElements((currentElements) => {
         const updatedElements = [...currentElements, enhancedElement]
 
-        // Broadcast the updated elements
-        if (broadcastTimeoutRef.current) {
-          clearTimeout(broadcastTimeoutRef.current)
-        }
-
-        broadcastTimeoutRef.current = setTimeout(() => {
-          throttledBroadcast(updatedElements)
-        }, 50)
+        throttledBroadcast(updatedElements)
 
         return updatedElements
       })
@@ -100,7 +107,7 @@ export function useRealtimeWhiteboard(
         timestamp: element.timestamp || Date.now(),
       }))
 
-      console.log("[v0] Broadcasting bulk elements:", enhancedElements.length)
+      console.log("[v0] Broadcasting bulk elements:", enhancedElements.length, "from participant:", participantId)
 
       setElements(enhancedElements)
 
@@ -122,7 +129,7 @@ export function useRealtimeWhiteboard(
         const newElementsStr = JSON.stringify(parsedElements.sort((a, b) => a.id.localeCompare(b.id)))
 
         if (currentElementsStr !== newElementsStr) {
-          console.log("[v0] Syncing elements:", parsedElements.length, "total")
+          console.log("[v0] Syncing elements from storage:", parsedElements.length, "total")
           return parsedElements
         }
 
@@ -172,7 +179,12 @@ export function useRealtimeWhiteboard(
         const newSorted = activeParticipants.sort().join(",")
 
         if (currentSorted !== newSorted) {
-          console.log("[v0] Participant list updated:", activeParticipants.length, "active")
+          console.log(
+            "[v0] Participant list updated:",
+            activeParticipants.length,
+            "active participants:",
+            activeParticipants,
+          )
           return activeParticipants
         }
 
@@ -187,14 +199,14 @@ export function useRealtimeWhiteboard(
   }, [pollId, participantId, heartbeatKey])
 
   useEffect(() => {
-    console.log("[v0] Initializing real-time whiteboard for poll:", pollId)
+    console.log("[v0] Initializing real-time whiteboard for poll:", pollId, "participant:", participantId)
 
     // Initial sync
     syncElements()
     updateHeartbeat()
 
     // Set up polling intervals
-    const syncInterval = setInterval(syncElements, 1000) // Sync every second
+    const syncInterval = setInterval(syncElements, 2000) // Sync every 2 seconds
     const heartbeatInterval = setInterval(updateHeartbeat, 3000) // Heartbeat every 3 seconds
 
     // Store intervals for cleanup
@@ -219,6 +231,33 @@ export function useRealtimeWhiteboard(
   }, [pollId, syncElements, updateHeartbeat, heartbeatKey])
 
   useEffect(() => {
+    const handleWhiteboardUpdate = (e: CustomEvent) => {
+      const { pollId: eventPollId, elements: newElements, participantId: eventParticipantId } = e.detail
+
+      // Only process events for our poll and from other participants
+      if (eventPollId === pollId && eventParticipantId !== participantId) {
+        console.log(
+          "[v0] Received whiteboard update from participant:",
+          eventParticipantId,
+          "with",
+          newElements.length,
+          "elements",
+        )
+
+        setElements((currentElements) => {
+          const currentElementsStr = JSON.stringify(currentElements.sort((a, b) => a.id.localeCompare(b.id)))
+          const newElementsStr = JSON.stringify(newElements.sort((a, b) => a.id.localeCompare(b.id)))
+
+          if (currentElementsStr !== newElementsStr) {
+            console.log("[v0] Updating elements from real-time event")
+            return newElements
+          }
+
+          return currentElements
+        })
+      }
+    }
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === elementsKey && e.newValue) {
         try {
@@ -229,7 +268,7 @@ export function useRealtimeWhiteboard(
             const newElementsStr = JSON.stringify(newElements.sort((a, b) => a.id.localeCompare(b.id)))
 
             if (currentElementsStr !== newElementsStr) {
-              console.log("[v0] Received storage update:", newElements.length, "elements")
+              console.log("[v0] Received storage update from other tab:", newElements.length, "elements")
               return newElements
             }
 
@@ -241,9 +280,14 @@ export function useRealtimeWhiteboard(
       }
     }
 
+    window.addEventListener("whiteboard-update", handleWhiteboardUpdate as EventListener)
     window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
-  }, [elementsKey])
+
+    return () => {
+      window.removeEventListener("whiteboard-update", handleWhiteboardUpdate as EventListener)
+      window.removeEventListener("storage", handleStorageChange)
+    }
+  }, [elementsKey, pollId, participantId])
 
   useEffect(() => {
     return () => {
