@@ -689,7 +689,15 @@ export default function ResultsPage() {
 
     // Calculate average position
     const sum = pollResponses.reduce((acc, response) => {
-      const value = typeof response.response === "number" ? response.response : 0
+      let value = 0
+
+      // Handle different response formats
+      if (typeof response.response === "object" && response.response?.value !== undefined) {
+        value = response.response.value
+      } else if (typeof response.response === "number") {
+        value = response.response
+      }
+
       console.log(`[v0] Adding value ${value} to sum`)
       return acc + value
     }, 0)
@@ -707,7 +715,14 @@ export default function ResultsPage() {
     }
 
     pollResponses.forEach((response) => {
-      const position = response.response
+      let position = 0
+
+      if (typeof response.response === "object" && response.response?.value !== undefined) {
+        position = response.response.value
+      } else if (typeof response.response === "number") {
+        position = response.response
+      }
+
       positionCounts[position] = (positionCounts[position] || 0) + 1
     })
 
@@ -757,7 +772,14 @@ export default function ResultsPage() {
           <div className="relative h-16 bg-gray-50 rounded-lg border border-gray-100">
             {/* Response dots */}
             {pollResponses.map((response, idx) => {
-              const position = response.response
+              let position = 0
+
+              if (typeof response.response === "object" && response.response?.value !== undefined) {
+                position = response.response.value
+              } else if (typeof response.response === "number") {
+                position = response.response
+              }
+
               const percentage = (position / (poll.data.steps - 1)) * 100
 
               return (
@@ -800,7 +822,14 @@ export default function ResultsPage() {
           <h4 className="text-sm font-medium mb-4">Individual Responses</h4>
           <div className="space-y-4 max-h-[400px] overflow-y-auto">
             {sortedResponses.map((response, index) => {
-              const position = response.response
+              let position = 0
+
+              if (typeof response.response === "object" && response.response?.value !== undefined) {
+                position = response.response.value
+              } else if (typeof response.response === "number") {
+                position = response.response
+              }
+
               const percentage = Math.round((position / (poll.data.steps - 1)) * 100)
 
               return (
