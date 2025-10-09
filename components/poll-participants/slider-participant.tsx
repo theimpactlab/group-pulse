@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { SlidersHorizontal } from "lucide-react"
@@ -16,9 +16,11 @@ export function SliderParticipant({ poll, onSubmit, disabled }: SliderParticipan
   const middleValue = Math.floor((poll.data.steps || 10) / 2)
   const [value, setValue] = useState<number>(middleValue)
 
-  useEffect(() => {
-    onSubmit({ value })
-  }, [value, onSubmit])
+  const handleValueChange = (newValue: number[]) => {
+    const val = newValue[0]
+    setValue(val)
+    onSubmit({ value: val })
+  }
 
   // Calculate percentage for visual feedback
   const percentage = ((value / (poll.data.steps || 10)) * 100).toFixed(0)
@@ -44,7 +46,7 @@ export function SliderParticipant({ poll, onSubmit, disabled }: SliderParticipan
           <div className="px-2">
             <Slider
               value={[value]}
-              onValueChange={(newValue) => setValue(newValue[0])}
+              onValueChange={handleValueChange}
               min={0}
               max={poll.data.steps || 10}
               step={1}
