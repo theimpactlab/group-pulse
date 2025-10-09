@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Loader2,
   ArrowLeft,
@@ -15,7 +14,6 @@ import {
   MessageSquare,
   RefreshCw,
   SlidersHorizontal,
-  Coins,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
@@ -678,178 +676,171 @@ export default function ResultsPage() {
   const renderSliderResults = (poll: any, pollResponses: any[]) => {
     console.log("[v0] Slider poll data:", poll.data)
     console.log("[v0] Slider responses:", pollResponses)
-    pollResponses.forEach((response, idx) => {
-      console.log(`[v0] Response ${idx}:`, {
-        id: response.id,
-        participant_name: response.participant_name,
-        response: response.response,
-        responseType: typeof response.response,
+
+    const values = pollResponses
+      .map((response) => {
+        if (typeof response.response === "object" && response.response?.value !== undefined) {
+          return response.response.value
+        } else if (typeof response.response === "number") {
+          return response.response
+        }
+        return 0
       })
-    })
+      .sort((a, b) => a - b)
 
-    // Calculate average position
-    const sum = pollResponses.reduce((acc, response) => {
-      let value = 0
+    // Calculate mean
+    const sum = values.reduce((acc, val) => acc + val, 0)
+    const mean = pollResponses.length > 0 ? sum / pollResponses.length : 0
 
-      // Handle different response formats
-      if (typeof response.response === "object" && response.response?.value !== undefined) {
-        value = response.response.value
-      } else if (typeof response.response === "number") {
-        value = response.response
-      }
-
-      console.log(`[v0] Adding value ${value} to sum`)
-      return acc + value
-    }, 0)
-    const average = pollResponses.length > 0 ? sum / pollResponses.length : 0
-
-    console.log(`[v0] Sum: ${sum}, Average: ${average}, Steps: ${poll.data.steps}`)
-
-    // Calculate average as percentage
-    const averagePercentage = Math.round((average / (poll.data.steps - 1)) * 100)
-
-    // Find the most common position
-    const positionCounts: Record<number, number> = {}
-    for (let i = 0; i < poll.data.steps; i++) {
-      positionCounts[i] = 0
+    // Calculate median
+    let median = 0
+    if (values.length > 0) {
+      const mid = Math.floor(values.length / 2)
+      median = values.length % 2 === 0 ? (values[mid - 1] + values[mid]) / 2 : values[mid]
     }
 
-    pollResponses.forEach((response) => {
-      let position = 0
-
-      if (typeof response.response === "object" && response.response?.value !== undefined) {
-        position = response.response.value
-      } else if (typeof response.response === "number") {
-        position = response.response
-      }
-
-      positionCounts[position] = (positionCounts[position] || 0) + 1
+    // Calculate mode (most common value)
+    const valueCounts: Record<number, number> = {}
+    values.forEach((val) => {
+      valueCounts[val] = (valueCounts[val] || 0) + 1
     })
 
-    let mostCommonPosition = 0
+    let mode = 0
     let maxCount = 0
-    Object.entries(positionCounts).forEach(([position, count]: any) => {
+    Object.entries(valueCounts).forEach(([value, count]) => {
       if (count > maxCount) {
         maxCount = count
-        mostCommonPosition = Number(position)
+        mode = Number(value)
       }
     })
 
-    // Calculate most common as percentage
-    const mostCommonPercentage = Math.round((mostCommonPosition / (poll.data.steps - 1)) * 100)
-
-    // Sort responses by participant name for consistent display
-    const sortedResponses = [...pollResponses].sort((a, b) =>
-      (a.participant_name || "Anonymous").localeCompare(b.participant_name || "Anonymous"),
-    )
+    const maxValue = poll.data.steps - 1
+    const meanPosition = (mean / maxValue) * 100
+    const medianPosition = (median / maxValue) * 100
+    const modePosition = (mode / maxValue) * 100
 
     return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-xl font-semibold mb-2">{poll.data.question}</h3>
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>{poll.data.leftOption}</span>
+            <span>{poll.data.rightOption}</span>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-4 gap-4">
           <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-600 mb-1">Average Position</p>
-            <p className="text-2xl font-bold text-blue-700">{averagePercentage}%</p>
+            <p className="text-sm text-blue-600 mb-1">Mean</p>
+            <p className="text-3xl font-bold text-blue-700">{mean.toFixed(1)}</p>
+            <p className="text-xs text-blue-600 mt-1">
+              Value: {mean.toFixed(1)} / {maxValue}
+            </p>
           </div>
           <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-green-600 mb-1">Most Common</p>
-            <p className="text-2xl font-bold text-green-700">{mostCommonPercentage}%</p>
-            <p className="text-xs text-green-600">{positionCounts[mostCommonPosition]} responses</p>
+            <p className="text-sm text-green-600 mb-1">Median</p>
+            <p className="text-3xl font-bold text-green-700">{median.toFixed(1)}</p>
+            <p className="text-xs text-green-600 mt-1">
+              Value: {median.toFixed(1)} / {maxValue}
+            </p>
           </div>
           <div className="p-4 bg-purple-50 rounded-lg">
-            <p className="text-sm text-purple-600 mb-1">Total Responses</p>
-            <p className="text-2xl font-bold text-purple-700">{pollResponses.length}</p>
+            <p className="text-sm text-purple-600 mb-1">Mode</p>
+            <p className="text-3xl font-bold text-purple-700">{mode}</p>
+            <p className="text-xs text-purple-600 mt-1">{maxCount} responses</p>
+          </div>
+          <div className="p-4 bg-amber-50 rounded-lg">
+            <p className="text-sm text-amber-600 mb-1">Responses</p>
+            <p className="text-3xl font-bold text-amber-700">{pollResponses.length}</p>
           </div>
         </div>
 
-        <div className="mt-6">
-          <div className="flex justify-between mb-4">
-            <span className="font-medium text-sm">{poll.data.leftOption}</span>
-            <span className="font-medium text-sm">{poll.data.rightOption}</span>
+        <div className="relative h-24 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 rounded-lg border-2 border-gray-200">
+          {/* Slider track */}
+          <div className="absolute inset-0 flex items-center px-4">
+            <div className="w-full h-2 bg-gray-300 rounded-full" />
           </div>
 
-          <div className="relative h-16 bg-gray-50 rounded-lg border border-gray-100">
-            {/* Response dots */}
-            {pollResponses.map((response, idx) => {
-              let position = 0
+          {/* Individual response dots */}
+          {pollResponses.map((response, idx) => {
+            let value = 0
+            if (typeof response.response === "object" && response.response?.value !== undefined) {
+              value = response.response.value
+            } else if (typeof response.response === "number") {
+              value = response.response
+            }
+            const position = (value / maxValue) * 100
 
-              if (typeof response.response === "object" && response.response?.value !== undefined) {
-                position = response.response.value
-              } else if (typeof response.response === "number") {
-                position = response.response
-              }
+            return (
+              <div
+                key={idx}
+                className="absolute w-3 h-3 rounded-full bg-gray-400 transform -translate-x-1/2 -translate-y-1/2 hover:scale-150 transition-transform cursor-pointer"
+                style={{
+                  left: `${position}%`,
+                  top: "50%",
+                  opacity: 0.6,
+                }}
+                title={`${response.participant_name || "Anonymous"}: ${value}`}
+              />
+            )
+          })}
 
-              const percentage = (position / (poll.data.steps - 1)) * 100
-
-              return (
-                <div
-                  key={idx}
-                  className="absolute w-4 h-4 rounded-full bg-primary transform -translate-x-1/2 -translate-y-1/2"
-                  style={{
-                    left: `${percentage}%`,
-                    top: "50%",
-                    opacity: 0.7,
-                  }}
-                  title={`${response.participant_name}: ${percentage}%`}
-                />
-              )
-            })}
-
-            {/* Average marker */}
-            <div
-              className="absolute w-6 h-6 rounded-full bg-blue-500 border-2 border-white transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
-              style={{
-                left: `${(average / (poll.data.steps - 1)) * 100}%`,
-                top: "50%",
-                zIndex: 10,
-              }}
-              title={`Average: ${averagePercentage}%`}
-            >
-              <span className="text-white text-xs">A</span>
-            </div>
+          {/* Mean marker (blue) */}
+          <div
+            className="absolute w-8 h-8 rounded-full bg-blue-500 border-3 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10"
+            style={{
+              left: `${meanPosition}%`,
+              top: "50%",
+            }}
+            title={`Mean: ${mean.toFixed(1)}`}
+          >
+            <span className="text-white text-xs font-bold">M</span>
           </div>
 
-          <div className="flex justify-between mt-2">
-            <div className="text-xs text-muted-foreground">0%</div>
-            <div className="text-xs text-muted-foreground">50%</div>
-            <div className="text-xs text-muted-foreground">100%</div>
+          {/* Median marker (green) */}
+          <div
+            className="absolute w-8 h-8 rounded-full bg-green-500 border-3 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10"
+            style={{
+              left: `${medianPosition}%`,
+              top: "30%",
+            }}
+            title={`Median: ${median.toFixed(1)}`}
+          >
+            <span className="text-white text-xs font-bold">Md</span>
           </div>
-        </div>
 
-        {/* Individual participant responses */}
-        <div className="mt-8">
-          <h4 className="text-sm font-medium mb-4">Individual Responses</h4>
-          <div className="space-y-4 max-h-[400px] overflow-y-auto">
-            {sortedResponses.map((response, index) => {
-              let position = 0
-
-              if (typeof response.response === "object" && response.response?.value !== undefined) {
-                position = response.response.value
-              } else if (typeof response.response === "number") {
-                position = response.response
-              }
-
-              const percentage = Math.round((position / (poll.data.steps - 1)) * 100)
-
-              return (
-                <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">{response.participant_name || "Anonymous"}</span>
-                    <span className="text-xs px-2 py-1 bg-primary/10 rounded-full text-primary font-medium">
-                      {percentage}%
-                    </span>
-                  </div>
-                  <div className="relative h-2 bg-gray-200 rounded-full">
-                    <div className="absolute h-2 bg-primary rounded-full" style={{ width: `${percentage}%` }} />
-                  </div>
-                </div>
-              )
-            })}
+          {/* Mode marker (purple) */}
+          <div
+            className="absolute w-8 h-8 rounded-full bg-purple-500 border-3 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10"
+            style={{
+              left: `${modePosition}%`,
+              top: "70%",
+            }}
+            title={`Mode: ${mode} (${maxCount} responses)`}
+          >
+            <span className="text-white text-xs font-bold">Mo</span>
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground mt-4">Total responses: {pollResponses.length}</p>
+        {/* Legend */}
+        <div className="flex justify-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-blue-500" />
+            <span>Mean: {mean.toFixed(1)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-green-500" />
+            <span>Median: {median.toFixed(1)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-purple-500" />
+            <span>Mode: {mode}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-gray-400" />
+            <span>Individual responses</span>
+          </div>
+        </div>
       </div>
     )
   }
@@ -1140,77 +1131,43 @@ export default function ResultsPage() {
           </Card>
         </div>
 
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            {sessionData.content.map((poll: any, index: number) => (
-              <TabsTrigger key={poll.id} value={poll.id}>
-                Question {index + 1}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div className="space-y-8">
+          {sessionData.content.map((poll: any, index: number) => {
+            const pollResponses = getResponsesForPoll(poll.id)
 
-          <TabsContent value="overview">
-            <div className="space-y-6">
-              {sessionData.content.map((poll: any, index: number) => (
-                <Card key={poll.id}>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Question {index + 1}</CardTitle>
-                    <CardDescription>
-                      {poll.type === "multiple-choice" && `Multiple Choice: ${poll.data.question}`}
-                      {poll.type === "word-cloud" && `Word Cloud: ${poll.data.question}`}
-                      {poll.type === "open-ended" && `Open-ended: ${poll.data.question}`}
-                      {poll.type === "scale" && `Scale: ${poll.data.question}`}
-                      {poll.type === "slider" && `Slider: ${poll.data.question}`}
-                      {poll.type === "ranking" && `Ranking: ${poll.data.question}`}
-                      {poll.type === "qa" && `Q&A: ${poll.data.title}`}
-                      {poll.type === "quiz" && `Quiz: ${poll.data.question}`}
-                      {poll.type === "image-choice" && `Image Choice: ${poll.data.question}`}
-                      {poll.type === "points-allocation" && `100 Points: ${poll.data.question}`}
-                      {poll.type === "whiteboard" && `Whiteboard: ${poll.data.title}`}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        {poll.type === "multiple-choice" && <BarChart3 className="h-5 w-5 text-blue-500" />}
-                        {poll.type === "word-cloud" && <CloudRain className="h-5 w-5 text-purple-500" />}
-                        {poll.type === "open-ended" && <MessageSquare className="h-5 w-5 text-green-500" />}
-                        {poll.type === "scale" && <BarChart3 className="h-5 w-5 text-amber-500" />}
-                        {poll.type === "slider" && <SlidersHorizontal className="h-5 w-5 text-teal-500" />}
-                        {poll.type === "ranking" && <BarChart3 className="h-5 w-5 text-red-500" />}
-                        {poll.type === "qa" && <MessageSquare className="h-5 w-5 text-cyan-500" />}
-                        {poll.type === "quiz" && <BarChart3 className="h-5 w-5 text-indigo-500" />}
-                        {poll.type === "image-choice" && <PieChart className="h-5 w-5 text-pink-500" />}
-                        {poll.type === "points-allocation" && <Coins className="h-5 w-5 text-amber-500" />}
-                        {poll.type === "whiteboard" && <WhiteboardCanvas className="h-5 w-5 text-amber-500" />}
-                        <span className="capitalize">{poll.type.replace(/-/g, " ")}</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground">{getResponseCountForPoll(poll.id)} responses</div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" onClick={() => setActiveTab(poll.id)}>
-                      View Details
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          {sessionData.content.map((poll: any) => (
-            <TabsContent key={poll.id} value={poll.id}>
-              <Card>
+            return (
+              <Card key={poll.id}>
                 <CardHeader>
-                  <CardTitle>Results</CardTitle>
-                  <CardDescription>{getResponseCountForPoll(poll.id)} responses received</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">Question {index + 1}</CardTitle>
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        {poll.type === "slider" && <SlidersHorizontal className="h-4 w-4 text-teal-500" />}
+                        {poll.type === "multiple-choice" && <BarChart3 className="h-4 w-4 text-blue-500" />}
+                        {poll.type === "word-cloud" && <CloudRain className="h-4 w-4 text-purple-500" />}
+                        {poll.type === "open-ended" && <MessageSquare className="h-4 w-4 text-green-500" />}
+                        {poll.type === "scale" && <BarChart3 className="h-4 w-4 text-amber-500" />}
+                        <span className="capitalize">{poll.type.replace(/-/g, " ")}</span>
+                      </CardDescription>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {pollResponses.length} response{pollResponses.length !== 1 ? "s" : ""}
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent>{renderPollResults(poll)}</CardContent>
+                <CardContent>
+                  {pollResponses.length === 0 ? (
+                    <div className="p-6 text-center bg-gray-50 rounded-lg">
+                      <p className="text-muted-foreground">No responses yet</p>
+                    </div>
+                  ) : (
+                    renderPollResults(poll)
+                  )}
+                </CardContent>
               </Card>
-            </TabsContent>
-          ))}
-        </Tabs>
+            )
+          })}
+        </div>
       </main>
     </div>
   )
