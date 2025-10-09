@@ -688,20 +688,26 @@ export default function ResultsPage() {
       })
       .sort((a, b) => a - b)
 
+    // FIX: Fix maxValue calculation - use actual steps value
+    const maxValue = poll.data.steps - 1
+
+    // Clamp values to valid range
+    const clampedValues = values.map((v) => Math.max(0, Math.min(v, maxValue)))
+
     // Calculate mean
-    const sum = values.reduce((acc, val) => acc + val, 0)
+    const sum = clampedValues.reduce((acc, val) => acc + val, 0)
     const mean = pollResponses.length > 0 ? sum / pollResponses.length : 0
 
     // Calculate median
     let median = 0
-    if (values.length > 0) {
-      const mid = Math.floor(values.length / 2)
-      median = values.length % 2 === 0 ? (values[mid - 1] + values[mid]) / 2 : values[mid]
+    if (clampedValues.length > 0) {
+      const mid = Math.floor(clampedValues.length / 2)
+      median = clampedValues.length % 2 === 0 ? (clampedValues[mid - 1] + clampedValues[mid]) / 2 : clampedValues[mid]
     }
 
     // Calculate mode (most common value)
     const valueCounts: Record<number, number> = {}
-    values.forEach((val) => {
+    clampedValues.forEach((val) => {
       valueCounts[val] = (valueCounts[val] || 0) + 1
     })
 
@@ -714,10 +720,9 @@ export default function ResultsPage() {
       }
     })
 
-    const maxValue = poll.data.steps - 1
-    const meanPosition = (mean / maxValue) * 100
-    const medianPosition = (median / maxValue) * 100
-    const modePosition = (mode / maxValue) * 100
+    const meanPosition = Math.max(0, Math.min(100, (mean / maxValue) * 100))
+    const medianPosition = Math.max(0, Math.min(100, (median / maxValue) * 100))
+    const modePosition = Math.max(0, Math.min(100, (mode / maxValue) * 100))
 
     return (
       <div className="space-y-6">
@@ -755,7 +760,7 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        <div className="relative h-24 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 rounded-lg border-2 border-gray-200">
+        <div className="relative h-24 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 rounded-lg border-2 border-gray-200 overflow-hidden">
           {/* Slider track */}
           <div className="absolute inset-0 flex items-center px-4">
             <div className="w-full h-2 bg-gray-300 rounded-full" />
@@ -769,14 +774,15 @@ export default function ResultsPage() {
             } else if (typeof response.response === "number") {
               value = response.response
             }
-            const position = (value / maxValue) * 100
+            const clampedValue = Math.max(0, Math.min(value, maxValue))
+            const position = Math.max(0, Math.min(100, (clampedValue / maxValue) * 100))
 
             return (
               <div
                 key={idx}
                 className="absolute w-3 h-3 rounded-full bg-gray-400 transform -translate-x-1/2 -translate-y-1/2 hover:scale-150 transition-transform cursor-pointer"
                 style={{
-                  left: `${position}%`,
+                  left: `calc(4% + ${position * 0.92}%)`,
                   top: "50%",
                   opacity: 0.6,
                 }}
@@ -789,7 +795,7 @@ export default function ResultsPage() {
           <div
             className="absolute w-8 h-8 rounded-full bg-blue-500 border-3 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10"
             style={{
-              left: `${meanPosition}%`,
+              left: `calc(4% + ${meanPosition * 0.92}%)`,
               top: "50%",
             }}
             title={`Mean: ${mean.toFixed(1)}`}
@@ -801,7 +807,7 @@ export default function ResultsPage() {
           <div
             className="absolute w-8 h-8 rounded-full bg-green-500 border-3 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10"
             style={{
-              left: `${medianPosition}%`,
+              left: `calc(4% + ${medianPosition * 0.92}%)`,
               top: "30%",
             }}
             title={`Median: ${median.toFixed(1)}`}
@@ -813,7 +819,7 @@ export default function ResultsPage() {
           <div
             className="absolute w-8 h-8 rounded-full bg-purple-500 border-3 border-white shadow-lg transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-10"
             style={{
-              left: `${modePosition}%`,
+              left: `calc(4% + ${modePosition * 0.92}%)`,
               top: "70%",
             }}
             title={`Mode: ${mode} (${maxCount} responses)`}
