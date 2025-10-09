@@ -9,7 +9,6 @@ import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
 import { CopyLinkButton } from "@/components/copy-link-button"
 import { QRCodeButton } from "@/components/qr-code-button"
-import { isSessionPresentable } from "@/lib/session-status"
 
 export default function PresentSessionPage() {
   const params = useParams()
@@ -45,8 +44,7 @@ export default function PresentSessionPage() {
         return
       }
 
-      // Check if the session is presentable
-      if (!isSessionPresentable(data.status)) {
+      if (data.status === "completed") {
         setError("This session is marked as complete and cannot be presented")
         return
       }
