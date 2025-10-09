@@ -106,8 +106,8 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     try {
       const responseData = Object.entries(responses).map(([pollId, data]) => ({
         session_id: session.id,
-        slide_id: pollId,
-        data: data,
+        poll_id: pollId,
+        response: data,
         participant_id: `participant_${Date.now()}`,
       }))
 
