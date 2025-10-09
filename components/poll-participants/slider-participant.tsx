@@ -25,7 +25,7 @@ export function SliderParticipant({ poll, onSubmit, disabled }: SliderParticipan
   const percentage = ((value / (poll.data.steps || 10)) * 100).toFixed(0)
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <SlidersHorizontal className="h-5 w-5 text-indigo-500" />

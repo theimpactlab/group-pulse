@@ -3,106 +3,89 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, ArrowLeft, Copy, Eye, EyeOff } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Loader2, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { supabase } from "@/lib/supabase"
-import { toast } from "sonner"
 import { CopyLinkButton } from "@/components/copy-link-button"
 import { QRCodeButton } from "@/components/qr-code-button"
+import { isSessionPresentable } from "@/lib/session-status"
 
 export default function PresentSessionPage() {
   const params = useParams()
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [isLoading, setIsLoading] = useState(true)
   const [sessionData, setSessionData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
-  const [responses, setResponses] = useState<any[]>([])
-  const [showResponses, setShowResponses] = useState(false)
 
   useEffect(() => {
-    async function fetchSession() {
-      if (!session?.user?.id || !params.id) return
-
-      try {
-        const { data, error } = await supabase.from("sessions").select("*").eq("id", params.id).single()
-
-        if (error) throw error
-
-        if (!data) {
-          setError("Session not found")
-          return
-        }
-
-        // Check if the session belongs to the current user
-        if (data.user_id !== session.user.id) {
-          setError("You don't have access to this session")
-          return
-        }
-
-        setSessionData(data)
-
-        // Fetch responses
-        fetchResponses(data.id)
-      } catch (error) {
-        console.error("Error fetching session:", error)
-        setError("Failed to load session")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    if (session) {
+    if (status === "unauthenticated") {
+      router.push("/login")
+    } else if (status === "authenticated") {
       fetchSession()
     }
-  }, [session, params.id])
+  }, [status, router])
 
-  const fetchResponses = async (sessionId: string) => {
+  const fetchSession = async () => {
     try {
-      const { data, error } = await supabase.from("responses").select("*").eq("session_id", sessionId)
+      const { data, error } = await supabase.from("sessions").select("*").eq("id", params.id).single()
 
       if (error) throw error
 
-      setResponses(data || [])
+      if (!data) {
+        setError("Session not found")
+        return
+      }
+
+      // Check if the session belongs to the current user
+      if (data.user_id !== session?.user?.id) {
+        setError("You don't have access to this session")
+        return
+      }
+
+      // Check if the session is presentable
+      if (!isSessionPresentable(data.status)) {
+        setError("This session is marked as complete and cannot be presented")
+        return
+      }
+
+      setSessionData(data)
+      setCurrentSlideIndex(data.current_poll_index ?? 0)
     } catch (error) {
-      console.error("Error fetching responses:", error)
+      console.error("Error fetching session:", error)
+      setError("Failed to load session")
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const getResponsesForCurrentSlide = () => {
-    if (!sessionData?.content || sessionData.content.length === 0) return []
+  const updateCurrentPollIndex = async (newIndex: number) => {
+    try {
+      const { error } = await supabase.from("sessions").update({ current_poll_index: newIndex }).eq("id", params.id)
 
-    const currentSlide = sessionData.content[currentSlideIndex]
-    return responses.filter((r) => r.poll_id === currentSlide.id)
-  }
-
-  const handleNextSlide = () => {
-    if (currentSlideIndex < (sessionData?.content?.length || 0) - 1) {
-      setCurrentSlideIndex(currentSlideIndex + 1)
+      if (error) {
+        console.error("Error updating current poll index:", error)
+      }
+    } catch (error) {
+      console.error("Error updating current poll index:", error)
     }
   }
 
-  const handlePreviousSlide = () => {
+  const goToNextSlide = async () => {
+    if (sessionData?.content && currentSlideIndex < sessionData.content.length - 1) {
+      const newIndex = currentSlideIndex + 1
+      setCurrentSlideIndex(newIndex)
+      await updateCurrentPollIndex(newIndex)
+    }
+  }
+
+  const goToPreviousSlide = async () => {
     if (currentSlideIndex > 0) {
-      setCurrentSlideIndex(currentSlideIndex - 1)
-    }
-  }
-
-  const toggleSessionStatus = async () => {
-    try {
-      const newStatus = sessionData.status === "active" ? "draft" : "active"
-
-      const { error } = await supabase.from("sessions").update({ status: newStatus }).eq("id", params.id)
-
-      if (error) throw error
-
-      setSessionData({ ...sessionData, status: newStatus })
-      toast.success(`Session ${newStatus === "active" ? "activated" : "deactivated"}`)
-    } catch (error) {
-      console.error("Error updating session status:", error)
-      toast.error("Failed to update session status")
+      const newIndex = currentSlideIndex - 1
+      setCurrentSlideIndex(newIndex)
+      await updateCurrentPollIndex(newIndex)
     }
   }
 
@@ -125,154 +108,84 @@ export default function PresentSessionPage() {
       <div className="flex min-h-screen flex-col">
         <main className="flex-1 container py-6">
           <div className="bg-red-50 text-red-600 p-4 rounded-md mb-4">{error}</div>
-          <Button onClick={() => router.push("/sessions")}>Back to Sessions</Button>
+          <Button onClick={() => router.push(`/sessions/${params.id}`)}>Back to Session</Button>
         </main>
       </div>
     )
   }
 
   const currentSlide = sessionData?.content?.[currentSlideIndex]
-  const currentResponses = getResponsesForCurrentSlide()
+  const totalSlides = sessionData?.content?.length || 0
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.push(`/sessions/${params.id}`)}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="font-bold">Presenting: {sessionData.title}</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={sessionData.status === "active" ? "default" : "outline"}
-              size="sm"
-              onClick={toggleSessionStatus}
-            >
-              {sessionData.status === "active" ? "Active" : "Activate Session"}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowResponses(!showResponses)}>
-              {showResponses ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-              {showResponses ? "Hide Responses" : "Show Responses"}
-            </Button>
-          </div>
+      <header className="flex items-center justify-between p-4 border-b">
+        <Button variant="outline" size="icon" onClick={() => router.push(`/sessions/${params.id}`)}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">
+            {sessionData.title} - Slide {currentSlideIndex + 1} of {totalSlides}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <CopyLinkButton url={joinUrl} />
+          <QRCodeButton url={joinUrl} title={sessionData.title} />
         </div>
       </header>
 
-      <main className="flex-1 container py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Current Slide</CardTitle>
-              <CardDescription>
-                {currentSlideIndex + 1} of {sessionData?.content?.length || 0}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {sessionData?.content?.length > 0 ? (
-                <div className="p-6 bg-gray-50 rounded-lg min-h-[300px]">
-                  <div className="mb-4">
-                    <span className="text-sm text-muted-foreground capitalize">
-                      {currentSlide.type.replace(/-/g, " ")}
-                    </span>
-                    <h2 className="text-2xl font-bold">
-                      {currentSlide.type === "qa" ? currentSlide.data.title : currentSlide.data.question}
-                    </h2>
-                    {currentSlide.type === "qa" && currentSlide.data.description && (
-                      <p className="text-muted-foreground mt-2">{currentSlide.data.description}</p>
-                    )}
+      <main className="flex-1 container py-6 flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          {totalSlides > 0 ? (
+            <Card className="w-full max-w-4xl">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-4">
+                    {currentSlide?.type === "multiple-choice" && currentSlide?.data?.question}
+                    {currentSlide?.type === "word-cloud" && currentSlide?.data?.question}
+                    {currentSlide?.type === "open-ended" && currentSlide?.data?.question}
+                    {currentSlide?.type === "scale" && currentSlide?.data?.question}
+                    {currentSlide?.type === "ranking" && currentSlide?.data?.question}
+                    {currentSlide?.type === "qa" && currentSlide?.data?.title}
+                    {currentSlide?.type === "quiz" && currentSlide?.data?.question}
+                    {currentSlide?.type === "image-choice" && currentSlide?.data?.question}
+                  </h2>
+                  <div className="text-sm text-muted-foreground mb-6">
+                    {currentSlide?.type && <span className="capitalize">{currentSlide.type.replace(/-/g, " ")}</span>}
                   </div>
 
-                  {showResponses && (
-                    <div className="mt-6 border-t pt-4">
-                      <h3 className="font-medium mb-2">Responses ({currentResponses.length})</h3>
-                      {currentResponses.length === 0 ? (
-                        <p className="text-muted-foreground">No responses yet</p>
+                  {/* Placeholder for slide content */}
+                  <div className="h-64 flex items-center justify-center border rounded-md bg-muted/20">
+                    <p className="text-muted-foreground">
+                      {sessionData.code ? (
+                        <>
+                          Join with code: <span className="font-mono font-bold">{sessionData.code}</span>
+                        </>
                       ) : (
-                        <div className="max-h-[200px] overflow-y-auto">
-                          {/* This is a simplified view - in a real app, you'd render responses based on poll type */}
-                          {currentResponses.map((response, index) => (
-                            <div key={index} className="p-2 border-b last:border-0">
-                              <div className="flex justify-between">
-                                <span className="font-medium">{response.participant_name || "Anonymous"}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(response.created_at).toLocaleTimeString()}
-                                </span>
-                              </div>
-                              <div className="text-sm">
-                                {typeof response.response === "string"
-                                  ? response.response
-                                  : JSON.stringify(response.response)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <>Scan QR code or use link to participate</>
                       )}
-                    </div>
-                  )}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <div className="p-6 bg-gray-50 rounded-lg min-h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">No content in this session. Add content in the editor.</p>
-                </div>
-              )}
-            </CardContent>
-            <div className="px-6 pb-6 flex justify-between">
-              <Button
-                variant="outline"
-                onClick={handlePreviousSlide}
-                disabled={currentSlideIndex === 0 || sessionData?.content?.length === 0}
-              >
-                Previous
-              </Button>
-              <Button
-                onClick={handleNextSlide}
-                disabled={
-                  currentSlideIndex === (sessionData?.content?.length || 0) - 1 || sessionData?.content?.length === 0
-                }
-              >
-                Next
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="text-center">
+              <p className="text-muted-foreground">This session has no content yet.</p>
+              <Button className="mt-4" onClick={() => router.push(`/sessions/${params.id}/edit`)}>
+                Add Content
               </Button>
             </div>
-          </Card>
+          )}
+        </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Join Information</CardTitle>
-              <CardDescription>Share with your audience</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <CopyLinkButton url={joinUrl} />
-                <QRCodeButton url={joinUrl} title={sessionData.title} />
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-medium mb-2">Session Code</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold tracking-wider">{params.id.substring(0, 6).toUpperCase()}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(params.id.substring(0, 6).toUpperCase())
-                      toast.success("Code copied to clipboard")
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">Participants can join at {baseUrl}/join</p>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-medium mb-2">Responses</h3>
-                <p className="text-sm">Total: {responses.length}</p>
-                <p className="text-sm">Current slide: {currentResponses.length}</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex items-center justify-between mt-6">
+          <Button variant="outline" onClick={goToPreviousSlide} disabled={currentSlideIndex === 0}>
+            <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+          </Button>
+          <Button onClick={goToNextSlide} disabled={currentSlideIndex === totalSlides - 1}>
+            Next <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </main>
     </div>

@@ -28,6 +28,27 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
 
   useEffect(() => {
     fetchSession()
+
+    const channel = supabase
+      .channel(`session-${params.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "sessions",
+          filter: `id=eq.${params.id}`,
+        },
+        (payload) => {
+          console.log("[v0] Session updated:", payload)
+          setSession(payload.new)
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [params.id])
 
   const fetchSession = async () => {
