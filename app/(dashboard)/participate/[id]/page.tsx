@@ -104,11 +104,10 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
 
     setSubmitting(true)
     try {
-      // Prepare all responses for submission
       const responseData = Object.entries(responses).map(([pollId, data]) => ({
         session_id: session.id,
-        poll_id: pollId,
-        response_data: data,
+        slide_id: pollId,
+        data: data,
         participant_id: `participant_${Date.now()}`,
       }))
 
