@@ -676,9 +676,26 @@ export default function ResultsPage() {
   }
 
   const renderSliderResults = (poll: any, pollResponses: any[]) => {
+    console.log("[v0] Slider poll data:", poll.data)
+    console.log("[v0] Slider responses:", pollResponses)
+    pollResponses.forEach((response, idx) => {
+      console.log(`[v0] Response ${idx}:`, {
+        id: response.id,
+        participant_name: response.participant_name,
+        response: response.response,
+        responseType: typeof response.response,
+      })
+    })
+
     // Calculate average position
-    const sum = pollResponses.reduce((acc, response) => acc + response.response, 0)
-    const average = sum / pollResponses.length
+    const sum = pollResponses.reduce((acc, response) => {
+      const value = typeof response.response === "number" ? response.response : 0
+      console.log(`[v0] Adding value ${value} to sum`)
+      return acc + value
+    }, 0)
+    const average = pollResponses.length > 0 ? sum / pollResponses.length : 0
+
+    console.log(`[v0] Sum: ${sum}, Average: ${average}, Steps: ${poll.data.steps}`)
 
     // Calculate average as percentage
     const averagePercentage = Math.round((average / (poll.data.steps - 1)) * 100)
