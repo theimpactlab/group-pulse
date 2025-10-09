@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase"
 import { PointsAllocationParticipant } from "@/components/poll-participants/points-allocation-participant"
 import { SimpleTestComponent } from "@/components/poll-participants/simple-test-component"
 import { WhiteboardParticipant } from "@/components/poll-participants/whiteboard-participant"
+import { SliderParticipant } from "@/components/poll-participants/slider-participant"
 
 export default function ParticipatePage({ params }: { params: { id: string } }) {
   const [session, setSession] = useState<any>(null)
@@ -281,31 +282,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
         )
 
       case "slider":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question || "Slider Question"}</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{pollData.leftOption || "Left"}</span>
-                <span>{pollData.rightOption || "Right"}</span>
-              </div>
-              <Slider
-                value={[response.value || Math.floor((pollData.steps || 10) / 2)]}
-                onValueChange={(value) => setResponse({ value: value[0] })}
-                min={0}
-                max={pollData.steps || 10}
-                step={1}
-                className="w-full"
-              />
-              <div className="text-center">
-                <span className="text-lg font-medium">{response.value ?? Math.floor((pollData.steps || 10) / 2)}</span>
-              </div>
-            </div>
-            <Button onClick={() => handleSubmitResponse(response)} disabled={submitting} className="w-full">
-              {submitting ? "Submitting..." : "Submit"}
-            </Button>
-          </div>
-        )
+        return <SliderParticipant poll={currentPoll} onSubmit={handleSubmitResponse} disabled={submitting} />
 
       case "points-allocation":
         return (
