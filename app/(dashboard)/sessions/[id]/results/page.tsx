@@ -90,16 +90,21 @@ export default function ResultsPage() {
   }
 
   const getResponsesForPoll = (pollId: string) => {
-    return responses.filter((r) => r.poll_id === pollId)
+    const pollResponses = responses.filter((r) => r.poll_id === pollId)
+    console.log(`[v0] Getting responses for poll ${pollId}:`, pollResponses.length, "responses")
+    return pollResponses
   }
 
   const renderPollResults = (poll: PollType) => {
     const pollResponses = getResponsesForPoll(poll.id)
 
+    console.log(`[v0] Rendering results for poll ${poll.id} (${poll.type}):`, pollResponses.length, "responses")
+
     if (pollResponses.length === 0) {
       return (
         <div className="p-6 text-center bg-gray-50 rounded-lg">
           <p className="text-muted-foreground">No responses yet</p>
+          <p className="text-xs text-muted-foreground mt-2">Poll ID: {poll.id}</p>
         </div>
       )
     }
