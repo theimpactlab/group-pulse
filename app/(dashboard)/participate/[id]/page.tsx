@@ -89,26 +89,11 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
   }
 
   const handleSubmitResponse = async (responseData: any) => {
-    if (!session || !getCurrentPoll()) return
+    if (!session || !responseData.pollId) return
 
     setSubmitting(true)
     try {
-      const currentPoll = getCurrentPoll()
-
-      // Prepare the response data
-      const submissionData = {
-        session_id: session.id,
-        poll_id: currentPoll.id || `poll_${Date.now()}`,
-        response: responseData, // Changed from 'data' to 'response'
-        participant_name: null, // Optional participant name
-        participant_id: `participant_${Date.now()}`, // Generate a participant ID
-        element_id: currentPoll.id || `poll_${Date.now()}`, // Use poll ID as element ID
-        created_at: new Date().toISOString(),
-      }
-
-      console.log("Submitting response data:", submissionData)
-
-      const { data, error } = await supabase.from("responses").insert(submissionData).select()
+      const { data, error } = await supabase.from("responses").insert(responseData).select()
 
       if (error) {
         console.error("Supabase error:", error)
@@ -136,16 +121,6 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     }
   }
 
-  const getCurrentPoll = () => {
-    if (!session?.content || !Array.isArray(session.content) || session.content.length === 0) {
-      return null
-    }
-
-    // If there's a current_poll_index, use that, otherwise use the first poll
-    const pollIndex = session.current_poll_index ?? 0
-    return session.content[pollIndex] || session.content[0]
-  }
-
   const renderMultipleChoice = (poll: any) => {
     const pollData = poll.data || {}
     const options = pollData.options || []
@@ -161,13 +136,16 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
               <div key={index} className="flex items-center space-x-2">
                 <Checkbox
                   id={`option-${index}`}
-                  checked={response.choices?.includes(optionId) || false}
+                  checked={response[poll.id]?.choices?.includes(optionId) || false}
                   onCheckedChange={(checked) => {
-                    const currentChoices = response.choices || []
+                    const currentChoices = response[poll.id]?.choices || []
                     if (checked) {
-                      setResponse({ choices: [...currentChoices, optionId] })
+                      setResponse({ ...response, [poll.id]: { choices: [...currentChoices, optionId] } })
                     } else {
-                      setResponse({ choices: currentChoices.filter((choice: string) => choice !== optionId) })
+                      setResponse({
+                        ...response,
+                        [poll.id]: { choices: currentChoices.filter((choice: string) => choice !== optionId) },
+                      })
                     }
                   }}
                 />
@@ -180,7 +158,10 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     }
 
     return (
-      <RadioGroup value={response.choice || ""} onValueChange={(value) => setResponse({ choice: value })}>
+      <RadioGroup
+        value={response[poll.id]?.choice || ""}
+        onValueChange={(value) => setResponse({ ...response, [poll.id]: { choice: value } })}
+      >
         {options.map((option: any, index: number) => {
           const optionText = typeof option === "string" ? option : option.text || option.id || `Option ${index + 1}`
           const optionId = typeof option === "string" ? option : option.id || option.text || `option-${index}`
@@ -197,28 +178,42 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
   }
 
   const renderPollContent = () => {
-    const currentPoll = getCurrentPoll()
-
-    if (!currentPoll) {
+    if (!session?.content || !Array.isArray(session.content) || session.content.length === 0) {
       return (
         <div className="text-center py-8">
-          <h3 className="text-lg font-medium mb-2">No active poll</h3>
-          <p className="text-muted-foreground">There is currently no active poll for this session.</p>
+          <h3 className="text-lg font-medium mb-2">No polls available</h3>
+          <p className="text-muted-foreground">There are currently no polls for this session.</p>
         </div>
       )
     }
 
-    const pollData = currentPoll.data || {}
+    return (
+      <div className="space-y-6">
+        {session.content.map((poll: any, index: number) => (
+          <Card key={poll.id || index}>
+            <CardHeader>
+              <CardTitle>Question {index + 1}</CardTitle>
+              <CardDescription className="capitalize">{poll.type.replace(/-/g, " ")}</CardDescription>
+            </CardHeader>
+            <CardContent>{renderSinglePoll(poll)}</CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
 
-    switch (currentPoll.type) {
+  const renderSinglePoll = (poll: any) => {
+    const pollData = poll.data || {}
+
+    switch (poll.type) {
       case "multiple-choice":
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{pollData.question || "Multiple Choice Question"}</h3>
-            {renderMultipleChoice(currentPoll)}
+            {renderMultipleChoice(poll)}
             <Button
-              onClick={() => handleSubmitResponse(response)}
-              disabled={(!response.choice && !response.choices?.length) || submitting}
+              onClick={() => handleSubmitResponse({ ...response[poll.id], pollId: poll.id })}
+              disabled={(!response[poll.id]?.choice && !response[poll.id]?.choices?.length) || submitting}
               className="w-full"
             >
               {submitting ? "Submitting..." : "Submit"}
@@ -231,18 +226,18 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{pollData.question || "Word Cloud"}</h3>
             <div>
-              <Label htmlFor="word-input">Enter a word or phrase</Label>
+              <Label htmlFor={`word-input-${poll.id}`}>Enter a word or phrase</Label>
               <Input
-                id="word-input"
-                value={response.word || ""}
-                onChange={(e) => setResponse({ word: e.target.value })}
+                id={`word-input-${poll.id}`}
+                value={response[poll.id]?.word || ""}
+                onChange={(e) => setResponse({ ...response, [poll.id]: { word: e.target.value } })}
                 placeholder="Type your response..."
                 maxLength={pollData.maxEntries || 50}
               />
             </div>
             <Button
-              onClick={() => handleSubmitResponse(response)}
-              disabled={!response.word?.trim() || submitting}
+              onClick={() => handleSubmitResponse({ ...response[poll.id], pollId: poll.id })}
+              disabled={!response[poll.id]?.word?.trim() || submitting}
               className="w-full"
             >
               {submitting ? "Submitting..." : "Submit"}
@@ -255,19 +250,19 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{pollData.question || "Open Ended Question"}</h3>
             <div>
-              <Label htmlFor="text-input">Your response</Label>
+              <Label htmlFor={`text-input-${poll.id}`}>Your response</Label>
               <Textarea
-                id="text-input"
-                value={response.text || ""}
-                onChange={(e) => setResponse({ text: e.target.value })}
+                id={`text-input-${poll.id}`}
+                value={response[poll.id]?.text || ""}
+                onChange={(e) => setResponse({ ...response, [poll.id]: { text: e.target.value } })}
                 placeholder="Type your response..."
                 rows={4}
                 maxLength={pollData.maxResponseLength || 1000}
               />
             </div>
             <Button
-              onClick={() => handleSubmitResponse(response)}
-              disabled={!response.text?.trim() || submitting}
+              onClick={() => handleSubmitResponse({ ...response[poll.id], pollId: poll.id })}
+              disabled={!response[poll.id]?.text?.trim() || submitting}
               className="w-full"
             >
               {submitting ? "Submitting..." : "Submit"}
@@ -285,25 +280,35 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
                 <span>{pollData.maxLabel || "Max"}</span>
               </div>
               <Slider
-                value={[response.value || pollData.min || 1]}
-                onValueChange={(value) => setResponse({ value: value[0] })}
+                value={[response[poll.id]?.value || pollData.min || 1]}
+                onValueChange={(value) => setResponse({ ...response, [poll.id]: { value: value[0] } })}
                 min={pollData.min || 1}
                 max={pollData.max || 10}
                 step={pollData.step || 1}
                 className="w-full"
               />
               <div className="text-center">
-                <span className="text-lg font-medium">{response.value || pollData.min || 1}</span>
+                <span className="text-lg font-medium">{response[poll.id]?.value || pollData.min || 1}</span>
               </div>
             </div>
-            <Button onClick={() => handleSubmitResponse(response)} disabled={submitting} className="w-full">
+            <Button
+              onClick={() => handleSubmitResponse({ ...response[poll.id], pollId: poll.id })}
+              disabled={submitting}
+              className="w-full"
+            >
               {submitting ? "Submitting..." : "Submit"}
             </Button>
           </div>
         )
 
       case "slider":
-        return <SliderParticipant poll={currentPoll} onSubmit={handleSubmitResponse} disabled={submitting} />
+        return (
+          <SliderParticipant
+            poll={poll}
+            onSubmit={(data) => handleSubmitResponse({ ...data, pollId: poll.id })}
+            disabled={submitting}
+          />
+        )
 
       case "points-allocation":
         return (
@@ -326,9 +331,13 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
             </div>
 
             {useTestComponent ? (
-              <SimpleTestComponent onSubmit={handleSubmitResponse} />
+              <SimpleTestComponent onSubmit={(data) => handleSubmitResponse({ ...data, pollId: poll.id })} />
             ) : (
-              <PointsAllocationParticipant poll={currentPoll} onSubmit={handleSubmitResponse} disabled={submitting} />
+              <PointsAllocationParticipant
+                poll={poll}
+                onSubmit={(data) => handleSubmitResponse({ ...data, pollId: poll.id })}
+                disabled={submitting}
+              />
             )}
           </div>
         )
@@ -336,18 +345,18 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
       case "whiteboard":
         return (
           <WhiteboardParticipant
-            poll={currentPoll}
+            poll={poll}
             sessionId={session.id}
             participantId={`participant_${Date.now()}`}
             participantName="Anonymous"
-            onResponse={handleSubmitResponse}
+            onResponse={(data) => handleSubmitResponse({ ...data, pollId: poll.id })}
           />
         )
 
       default:
         return (
           <div className="text-center py-8">
-            <h3 className="text-lg font-medium mb-2">Poll Type: {currentPoll.type}</h3>
+            <h3 className="text-lg font-medium mb-2">Poll Type: {poll.type}</h3>
             <p className="text-muted-foreground">This poll type is not yet supported in the participant view.</p>
           </div>
         )
@@ -425,29 +434,5 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     )
   }
 
-  const currentPoll = getCurrentPoll()
-
-  return (
-    <div className={currentPoll?.type === "whiteboard" ? "h-screen" : "container mx-auto py-10 max-w-2xl"}>
-      {currentPoll?.type === "whiteboard" ? (
-        <WhiteboardParticipant
-          poll={currentPoll}
-          sessionId={session.id}
-          participantId={`participant_${Date.now()}`}
-          participantName="Anonymous"
-          onResponse={handleSubmitResponse}
-        />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>{session.title || "Interactive Session"}</CardTitle>
-            <CardDescription>
-              Session Code: <span className="font-mono font-bold">{session.code || params.id}</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>{renderPollContent()}</CardContent>
-        </Card>
-      )}
-    </div>
-  )
+  return <div className="container mx-auto py-10 max-w-5xl">{renderPollContent()}</div>
 }
