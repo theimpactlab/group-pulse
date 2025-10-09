@@ -21,7 +21,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [response, setResponse] = useState<any>({})
+  const [responses, setResponses] = useState<Record<string, any>>({})
   const [useTestComponent, setUseTestComponent] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
@@ -88,11 +88,31 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
     }
   }
 
-  const handleSubmitResponse = async (responseData: any) => {
-    if (!session || !responseData.pollId) return
+  const handleSubmitAllResponses = async () => {
+    if (!session) return
+
+    // Check if at least one response is provided
+    const hasResponses = Object.keys(responses).length > 0
+    if (!hasResponses) {
+      toast({
+        title: "No responses",
+        description: "Please answer at least one question before submitting.",
+        variant: "destructive",
+      })
+      return
+    }
 
     setSubmitting(true)
     try {
+      // Prepare all responses for submission
+      const responseData = Object.entries(responses).map(([pollId, data]) => ({
+        session_id: session.id,
+        poll_id: pollId,
+        response_data: data,
+        participant_id: `participant_${Date.now()}`,
+      }))
+
+      // Submit all responses
       const { data, error } = await supabase.from("responses").insert(responseData).select()
 
       if (error) {
@@ -100,25 +120,32 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
         throw error
       }
 
-      console.log("Response submitted successfully:", data)
+      console.log("All responses submitted successfully:", data)
 
       toast({
-        title: "Response submitted",
+        title: "Responses submitted",
         description: "Thank you for your participation!",
       })
 
       // Redirect to thank you page
       router.push(`/participate/${params.id}/thank-you`)
     } catch (error) {
-      console.error("Error submitting response:", error)
+      console.error("Error submitting responses:", error)
       toast({
         title: "Error",
-        description: "Failed to submit your response. Please try again.",
+        description: "Failed to submit your responses. Please try again.",
         variant: "destructive",
       })
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const updateResponse = (pollId: string, data: any) => {
+    setResponses((prev) => ({
+      ...prev,
+      [pollId]: data,
+    }))
   }
 
   const renderMultipleChoice = (poll: any) => {
@@ -135,21 +162,20 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
             return (
               <div key={index} className="flex items-center space-x-2">
                 <Checkbox
-                  id={`option-${index}`}
-                  checked={response[poll.id]?.choices?.includes(optionId) || false}
+                  id={`option-${poll.id}-${index}`}
+                  checked={responses[poll.id]?.choices?.includes(optionId) || false}
                   onCheckedChange={(checked) => {
-                    const currentChoices = response[poll.id]?.choices || []
+                    const currentChoices = responses[poll.id]?.choices || []
                     if (checked) {
-                      setResponse({ ...response, [poll.id]: { choices: [...currentChoices, optionId] } })
+                      updateResponse(poll.id, { choices: [...currentChoices, optionId] })
                     } else {
-                      setResponse({
-                        ...response,
-                        [poll.id]: { choices: currentChoices.filter((choice: string) => choice !== optionId) },
+                      updateResponse(poll.id, {
+                        choices: currentChoices.filter((choice: string) => choice !== optionId),
                       })
                     }
                   }}
                 />
-                <Label htmlFor={`option-${index}`}>{optionText}</Label>
+                <Label htmlFor={`option-${poll.id}-${index}`}>{optionText}</Label>
               </div>
             )
           })}
@@ -159,8 +185,8 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
 
     return (
       <RadioGroup
-        value={response[poll.id]?.choice || ""}
-        onValueChange={(value) => setResponse({ ...response, [poll.id]: { choice: value } })}
+        value={responses[poll.id]?.choice || ""}
+        onValueChange={(value) => updateResponse(poll.id, { choice: value })}
       >
         {options.map((option: any, index: number) => {
           const optionText = typeof option === "string" ? option : option.text || option.id || `Option ${index + 1}`
@@ -168,8 +194,8 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
 
           return (
             <div key={index} className="flex items-center space-x-2">
-              <RadioGroupItem value={optionId} id={`option-${index}`} />
-              <Label htmlFor={`option-${index}`}>{optionText}</Label>
+              <RadioGroupItem value={optionId} id={`option-${poll.id}-${index}`} />
+              <Label htmlFor={`option-${poll.id}-${index}`}>{optionText}</Label>
             </div>
           )
         })}
@@ -198,6 +224,17 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
             <CardContent>{renderSinglePoll(poll)}</CardContent>
           </Card>
         ))}
+
+        <div className="sticky bottom-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 rounded-lg border shadow-lg">
+          <Button
+            onClick={handleSubmitAllResponses}
+            disabled={submitting || Object.keys(responses).length === 0}
+            className="w-full"
+            size="lg"
+          >
+            {submitting ? "Submitting..." : `Submit All Responses (${Object.keys(responses).length} answered)`}
+          </Button>
+        </div>
       </div>
     )
   }
@@ -211,13 +248,6 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">{pollData.question || "Multiple Choice Question"}</h3>
             {renderMultipleChoice(poll)}
-            <Button
-              onClick={() => handleSubmitResponse({ ...response[poll.id], pollId: poll.id })}
-              disabled={(!response[poll.id]?.choice && !response[poll.id]?.choices?.length) || submitting}
-              className="w-full"
-            >
-              {submitting ? "Submitting..." : "Submit"}
-            </Button>
           </div>
         )
 
@@ -229,19 +259,12 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
               <Label htmlFor={`word-input-${poll.id}`}>Enter a word or phrase</Label>
               <Input
                 id={`word-input-${poll.id}`}
-                value={response[poll.id]?.word || ""}
-                onChange={(e) => setResponse({ ...response, [poll.id]: { word: e.target.value } })}
+                value={responses[poll.id]?.word || ""}
+                onChange={(e) => updateResponse(poll.id, { word: e.target.value })}
                 placeholder="Type your response..."
                 maxLength={pollData.maxEntries || 50}
               />
             </div>
-            <Button
-              onClick={() => handleSubmitResponse({ ...response[poll.id], pollId: poll.id })}
-              disabled={!response[poll.id]?.word?.trim() || submitting}
-              className="w-full"
-            >
-              {submitting ? "Submitting..." : "Submit"}
-            </Button>
           </div>
         )
 
@@ -253,20 +276,13 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
               <Label htmlFor={`text-input-${poll.id}`}>Your response</Label>
               <Textarea
                 id={`text-input-${poll.id}`}
-                value={response[poll.id]?.text || ""}
-                onChange={(e) => setResponse({ ...response, [poll.id]: { text: e.target.value } })}
+                value={responses[poll.id]?.text || ""}
+                onChange={(e) => updateResponse(poll.id, { text: e.target.value })}
                 placeholder="Type your response..."
                 rows={4}
                 maxLength={pollData.maxResponseLength || 1000}
               />
             </div>
-            <Button
-              onClick={() => handleSubmitResponse({ ...response[poll.id], pollId: poll.id })}
-              disabled={!response[poll.id]?.text?.trim() || submitting}
-              className="w-full"
-            >
-              {submitting ? "Submitting..." : "Submit"}
-            </Button>
           </div>
         )
 
@@ -280,34 +296,23 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
                 <span>{pollData.maxLabel || "Max"}</span>
               </div>
               <Slider
-                value={[response[poll.id]?.value || pollData.min || 1]}
-                onValueChange={(value) => setResponse({ ...response, [poll.id]: { value: value[0] } })}
+                value={[responses[poll.id]?.value || pollData.min || 1]}
+                onValueChange={(value) => updateResponse(poll.id, { value: value[0] })}
                 min={pollData.min || 1}
                 max={pollData.max || 10}
                 step={pollData.step || 1}
                 className="w-full"
               />
               <div className="text-center">
-                <span className="text-lg font-medium">{response[poll.id]?.value || pollData.min || 1}</span>
+                <span className="text-lg font-medium">{responses[poll.id]?.value || pollData.min || 1}</span>
               </div>
             </div>
-            <Button
-              onClick={() => handleSubmitResponse({ ...response[poll.id], pollId: poll.id })}
-              disabled={submitting}
-              className="w-full"
-            >
-              {submitting ? "Submitting..." : "Submit"}
-            </Button>
           </div>
         )
 
       case "slider":
         return (
-          <SliderParticipant
-            poll={poll}
-            onSubmit={(data) => handleSubmitResponse({ ...data, pollId: poll.id })}
-            disabled={submitting}
-          />
+          <SliderParticipant poll={poll} onSubmit={(data) => updateResponse(poll.id, data)} disabled={submitting} />
         )
 
       case "points-allocation":
@@ -331,11 +336,11 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
             </div>
 
             {useTestComponent ? (
-              <SimpleTestComponent onSubmit={(data) => handleSubmitResponse({ ...data, pollId: poll.id })} />
+              <SimpleTestComponent onSubmit={(data) => updateResponse(poll.id, data)} />
             ) : (
               <PointsAllocationParticipant
                 poll={poll}
-                onSubmit={(data) => handleSubmitResponse({ ...data, pollId: poll.id })}
+                onSubmit={(data) => updateResponse(poll.id, data)}
                 disabled={submitting}
               />
             )}
@@ -349,7 +354,7 @@ export default function ParticipatePage({ params }: { params: { id: string } }) 
             sessionId={session.id}
             participantId={`participant_${Date.now()}`}
             participantName="Anonymous"
-            onResponse={(data) => handleSubmitResponse({ ...data, pollId: poll.id })}
+            onResponse={(data) => updateResponse(poll.id, data)}
           />
         )
 
