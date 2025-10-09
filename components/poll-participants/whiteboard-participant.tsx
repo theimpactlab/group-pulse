@@ -1,8 +1,5 @@
 "use client"
-
-import { useState } from "react"
 import WhiteboardCanvas from "@/components/whiteboard-canvas"
-import { Button } from "@/components/ui/button"
 import type { WhiteboardPoll } from "@/types/poll-types"
 
 interface WhiteboardElement {
@@ -36,23 +33,6 @@ export function WhiteboardParticipant({
   participantName = "Anonymous",
   onResponse,
 }: WhiteboardParticipantProps) {
-  const [isSubmitted, setIsSubmitted] = useState(false)
-
-  const handleSubmitWhiteboard = () => {
-    const elementsKey = `whiteboard_elements_${sessionId}`
-    const storedElements = localStorage.getItem(elementsKey)
-    const elements = storedElements ? JSON.parse(storedElements) : []
-
-    onResponse?.({
-      type: "whiteboard-final",
-      elements: elements,
-      participantId,
-      participantName,
-      timestamp: new Date().toISOString(),
-    })
-    setIsSubmitted(true)
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b px-6 py-4">
@@ -60,11 +40,6 @@ export function WhiteboardParticipant({
           <div>
             <h1 className="text-2xl font-bold">{poll.data.title}</h1>
             {poll.data.instructions && <p className="text-sm text-muted-foreground mt-1">{poll.data.instructions}</p>}
-          </div>
-          <div className="flex items-center gap-4">
-            <Button onClick={handleSubmitWhiteboard} disabled={isSubmitted} className="px-8">
-              {isSubmitted ? "Whiteboard Submitted" : "Submit Whiteboard"}
-            </Button>
           </div>
         </div>
       </div>

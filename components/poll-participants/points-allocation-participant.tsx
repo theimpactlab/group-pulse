@@ -1,116 +1,54 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MessageSquare } from "lucide-react"
+import type { OpenEndedPoll } from "@/types/poll-types"
 
-interface PointsAllocationParticipantProps {
-  poll: any
-  onSubmit: (data: any) => void
-  disabled: boolean
+interface OpenEndedParticipantProps {
+  poll: OpenEndedPoll
+  onSubmit: (response: string) => void
+  disabled?: boolean
 }
 
-export function PointsAllocationParticipant({ poll, onSubmit, disabled }: PointsAllocationParticipantProps) {
-  console.log("PointsAllocationParticipant rendering with poll:", poll)
+export function OpenEndedParticipant({ poll, onSubmit, disabled }: OpenEndedParticipantProps) {
+  const [response, setResponse] = useState("")
 
-  // Extract poll data safely
-  const question = poll?.data?.question || "Allocate points"
-  const rawOptions = poll?.data?.options || []
-  const totalPoints = poll?.data?.totalPoints || 100
-
-  // Memoize options to prevent infinite re-renders
-  const options = useMemo(() => {
-    return rawOptions.map((opt: any, index: number) => {
-      if (typeof opt === "string") {
-        return { id: String(index), text: opt }
-      }
-      return {
-        id: String(index),
-        text: opt?.text || opt?.id || `Option ${index + 1}`,
-      }
-    })
-  }, [rawOptions])
-
-  console.log("Processed options:", options)
-
-  // Simple state for points
-  const [points, setPoints] = useState<Record<string, number>>({})
-
-  // Initialize points only when options change
   useEffect(() => {
-    console.log("useEffect triggered, options length:", options.length)
-    const initial: Record<string, number> = {}
-    options.forEach((opt) => {
-      initial[opt.id] = 0
-    })
-    setPoints(initial)
-    console.log("Initialized points:", initial)
-  }, [options.length]) // Only depend on length to avoid infinite loop
-
-  // Calculate total allocated
-  const totalAllocated = Object.values(points).reduce((sum, val) => sum + val, 0)
-  const remaining = totalPoints - totalAllocated
-
-  // Handle input change
-  const handleChange = (id: string, value: string) => {
-    console.log("Input change:", id, value)
-    try {
-      const numValue = Math.max(0, Number.parseInt(value) || 0)
-      setPoints((prev) => ({
-        ...prev,
-        [id]: numValue,
-      }))
-      console.log("Updated points for", id, "to", numValue)
-    } catch (err) {
-      console.error("Error updating points:", err)
+    if (response.trim()) {
+      const timer = setTimeout(() => {
+        onSubmit(response.trim())
+      }, 1000) // Submit after 1 second of no typing
+      return () => clearTimeout(timer)
     }
-  }
+  }, [response, onSubmit])
 
-  // Handle submission
-  const handleSubmit = () => {
-    console.log("Submitting points:", points)
-    onSubmit({ allocation: points })
-  }
+  const remainingChars = poll.data.maxResponseLength ? poll.data.maxResponseLength - response.length : null
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold mb-4">{question}</h2>
-        <p className="mb-4">
-          You have {totalPoints} points to distribute. Currently allocated: {totalAllocated}, Remaining: {remaining}
-        </p>
-      </div>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-green-500" />
+          {poll.data.question}
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">Share your thoughts (auto-saves as you type)</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Textarea
+          value={response}
+          onChange={(e) => setResponse(e.target.value)}
+          placeholder="Type your response here..."
+          disabled={disabled}
+          className="min-h-[120px]"
+          maxLength={poll.data.maxResponseLength}
+        />
 
-      <div className="space-y-4">
-        {options.map((option) => (
-          <Card key={option.id} className="p-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={`input-${option.id}`}>{option.text}</Label>
-              <Input
-                id={`input-${option.id}`}
-                type="number"
-                min="0"
-                max={totalPoints}
-                value={points[option.id] || 0}
-                onChange={(e) => handleChange(option.id, e.target.value)}
-                className="w-24 text-right"
-                placeholder="0"
-              />
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <div className="text-center">
-        <p className="mb-4">
-          Total allocated: {totalAllocated} / {totalPoints}
-        </p>
-        <Button onClick={handleSubmit} disabled={disabled || totalAllocated === 0} className="w-full">
-          {disabled ? "Submitting..." : "Submit Allocation"}
-        </Button>
-      </div>
-    </div>
+        {remainingChars !== null && (
+          <p className="text-xs text-muted-foreground text-right">{remainingChars} characters remaining</p>
+        )}
+      </CardContent>
+    </Card>
   )
 }

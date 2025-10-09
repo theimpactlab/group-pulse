@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare } from "lucide-react"
@@ -16,11 +15,14 @@ interface OpenEndedParticipantProps {
 export function OpenEndedParticipant({ poll, onSubmit, disabled }: OpenEndedParticipantProps) {
   const [response, setResponse] = useState("")
 
-  const handleSubmit = () => {
+  useEffect(() => {
     if (response.trim()) {
-      onSubmit(response.trim())
+      const timer = setTimeout(() => {
+        onSubmit(response.trim())
+      }, 1000) // Submit after 1 second of no typing
+      return () => clearTimeout(timer)
     }
-  }
+  }, [response, onSubmit])
 
   const remainingChars = poll.data.maxResponseLength ? poll.data.maxResponseLength - response.length : null
 
@@ -31,7 +33,7 @@ export function OpenEndedParticipant({ poll, onSubmit, disabled }: OpenEndedPart
           <MessageSquare className="h-5 w-5 text-green-500" />
           {poll.data.question}
         </CardTitle>
-        <p className="text-sm text-muted-foreground">Share your thoughts in detail</p>
+        <p className="text-sm text-muted-foreground">Share your thoughts (auto-saves as you type)</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <Textarea
@@ -46,10 +48,6 @@ export function OpenEndedParticipant({ poll, onSubmit, disabled }: OpenEndedPart
         {remainingChars !== null && (
           <p className="text-xs text-muted-foreground text-right">{remainingChars} characters remaining</p>
         )}
-
-        <Button onClick={handleSubmit} disabled={disabled || !response.trim()} className="w-full">
-          Submit Response
-        </Button>
       </CardContent>
     </Card>
   )

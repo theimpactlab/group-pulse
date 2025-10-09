@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -19,6 +18,14 @@ export function MultipleChoiceParticipant({ poll, onSubmit, disabled }: Multiple
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [singleSelection, setSingleSelection] = useState<string>("")
 
+  useEffect(() => {
+    if (poll.data.allowMultipleAnswers && selectedOptions.length > 0) {
+      onSubmit(selectedOptions)
+    } else if (!poll.data.allowMultipleAnswers && singleSelection) {
+      onSubmit(singleSelection)
+    }
+  }, [selectedOptions, singleSelection, poll.data.allowMultipleAnswers, onSubmit])
+
   const handleSingleSelectionChange = (value: string) => {
     setSingleSelection(value)
   }
@@ -30,16 +37,6 @@ export function MultipleChoiceParticipant({ poll, onSubmit, disabled }: Multiple
       setSelectedOptions(selectedOptions.filter((id) => id !== optionId))
     }
   }
-
-  const handleSubmit = () => {
-    if (poll.data.allowMultipleAnswers) {
-      onSubmit(selectedOptions)
-    } else {
-      onSubmit(singleSelection)
-    }
-  }
-
-  const canSubmit = poll.data.allowMultipleAnswers ? selectedOptions.length > 0 : singleSelection !== ""
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -81,10 +78,6 @@ export function MultipleChoiceParticipant({ poll, onSubmit, disabled }: Multiple
             ))}
           </RadioGroup>
         )}
-
-        <Button onClick={handleSubmit} disabled={disabled || !canSubmit} className="w-full">
-          Submit Answer
-        </Button>
       </CardContent>
     </Card>
   )

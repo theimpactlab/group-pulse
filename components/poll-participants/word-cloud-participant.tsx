@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CloudRain } from "lucide-react"
@@ -18,15 +17,10 @@ interface WordCloudParticipantProps {
 export function WordCloudParticipant({ poll, onSubmit, disabled }: WordCloudParticipantProps) {
   const [word, setWord] = useState("")
 
-  const handleSubmit = () => {
-    if (word.trim()) {
-      onSubmit(word.trim())
-    }
-  }
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && word.trim()) {
-      handleSubmit()
+      onSubmit(word.trim())
+      setWord("") // Clear after submission
     }
   }
 
@@ -37,21 +31,17 @@ export function WordCloudParticipant({ poll, onSubmit, disabled }: WordCloudPart
           <CloudRain className="h-5 w-5 text-purple-500" />
           {poll.data.question}
         </CardTitle>
-        <p className="text-sm text-muted-foreground">Enter a word or short phrase</p>
+        <p className="text-sm text-muted-foreground">Enter a word or short phrase (press Enter to add)</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <Input
           value={word}
           onChange={(e) => setWord(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Type your word here..."
+          placeholder="Type your word here and press Enter..."
           disabled={disabled}
           className="text-lg"
         />
-
-        <Button onClick={handleSubmit} disabled={disabled || !word.trim()} className="w-full">
-          Submit Word
-        </Button>
       </CardContent>
     </Card>
   )
