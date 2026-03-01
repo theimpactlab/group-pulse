@@ -1,53 +1,101 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Textarea } from "@/components/ui/textarea"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare } from "lucide-react"
-import type { OpenEndedPoll } from "@/types/poll-types"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { CircleDot } from "lucide-react"
+import type { PointsAllocationPoll } from "@/types/poll-types"
 
-interface OpenEndedParticipantProps {
-  poll: OpenEndedPoll
-  onSubmit: (response: string) => void
+interface PointsAllocationParticipantProps {
+  poll: PointsAllocationPoll
+  onSubmit: (response: Record<string, number>) => void
   disabled?: boolean
 }
 
-export function OpenEndedParticipant({ poll, onSubmit, disabled }: OpenEndedParticipantProps) {
-  const [response, setResponse] = useState("")
+export function PointsAllocationParticipant({ poll, onSubmit, disabled }: PointsAllocationParticipantProps) {
+  const { question, totalPoints, options, minPointsPerOption = 0, maxPointsPerOption } = poll.data
 
-  useEffect(() => {
-    if (response.trim()) {
-      const timer = setTimeout(() => {
-        onSubmit(response.trim())
-      }, 1000) // Submit after 1 second of no typing
-      return () => clearTimeout(timer)
-    }
-  }, [response, onSubmit])
+  const [allocations, setAllocations] = useState<Record<string, number>>(
+    Object.fromEntries(options.map((opt) => [opt.id, 0]))
+  )
+  const [hasSubmitted, setHasSubmitted] = useState(false)
 
-  const remainingChars = poll.data.maxResponseLength ? poll.data.maxResponseLength - response.length : null
+  const usedPoints = Object.values(allocations).reduce((sum, val) => sum + val, 0)
+  const remainingPoints = totalPoints - usedPoints
+
+  const handleChange = (optionId: string, value: string) => {
+    const numValue = Math.max(0, parseInt(value) || 0)
+    const effectiveMax = maxPointsPerOption ?? totalPoints
+    const clampedValue = Math.min(numValue, effectiveMax)
+
+    setAllocations((prev) => ({
+      ...prev,
+      [optionId]: clampedValue,
+    }))
+  }
+
+  const handleSubmit = () => {
+    if (remainingPoints < 0) return
+
+    const belowMin = options.some((opt) => allocations[opt.id] < minPointsPerOption)
+    if (belowMin) return
+
+    setHasSubmitted(true)
+    onSubmit(allocations)
+  }
+
+  const isValid =
+    remainingPoints >= 0 &&
+    options.every((opt) => allocations[opt.id] >= minPointsPerOption)
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-green-500" />
-          {poll.data.question}
+          <CircleDot className="h-5 w-5 text-purple-500" />
+          {question}
         </CardTitle>
-        <p className="text-sm text-muted-foreground">Share your thoughts (auto-saves as you type)</p>
+        <p className="text-sm text-muted-foreground">
+          Allocate {totalPoints} points across the options below
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Textarea
-          value={response}
-          onChange={(e) => setResponse(e.target.value)}
-          placeholder="Type your response here..."
-          disabled={disabled}
-          className="min-h-[120px]"
-          maxLength={poll.data.maxResponseLength}
-        />
+        <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-2">
+          <span className="text-sm font-medium">Points remaining</span>
+          <span className={`text-lg font-bold ${remainingPoints < 0 ? "text-red-500" : "text-primary"}`}>
+            {remainingPoints}
+          </span>
+        </div>
 
-        {remainingChars !== null && (
-          <p className="text-xs text-muted-foreground text-right">{remainingChars} characters remaining</p>
+        <div className="space-y-3">
+          {options.map((option) => (
+            <div key={option.id} className="flex items-center gap-3">
+              <label className="flex-1 text-sm font-medium">{option.text}</label>
+              <Input
+                type="number"
+                min={minPointsPerOption}
+                max={maxPointsPerOption ?? totalPoints}
+                value={allocations[option.id]}
+                onChange={(e) => handleChange(option.id, e.target.value)}
+                disabled={disabled || hasSubmitted}
+                className="w-24 text-center"
+              />
+            </div>
+          ))}
+        </div>
+
+        {remainingPoints < 0 && (
+          <p className="text-sm text-red-500">You've allocated too many points. Please adjust.</p>
         )}
+
+        <Button
+          onClick={handleSubmit}
+          disabled={disabled || hasSubmitted || !isValid}
+          className="w-full"
+        >
+          {hasSubmitted ? "Submitted" : "Submit Allocation"}
+        </Button>
       </CardContent>
     </Card>
   )
