@@ -32,7 +32,7 @@ export default function AnalyticsPage() {
       const { data: sessions, error: sessionsError } = await supabase
         .from("sessions")
         .select("id, status")
-        .eq("user_id", session?.user?.id)
+        .eq("user_id", (session?.user as any)?.id)
 
       if (sessionsError) throw sessionsError
 
