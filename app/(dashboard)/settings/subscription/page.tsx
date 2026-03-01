@@ -30,8 +30,7 @@ export default function SubscriptionPage() {
       // Only load the PayPal script if it hasn't been loaded already
       if (!document.querySelector('script[src*="paypal.com/sdk/js"]')) {
         const script = document.createElement("script")
-        script.src =
-          "https://www.paypal.com/sdk/js?client-id=AX_8QiXsmnhX9jBZoE-iwUiJo3ZG78HFTvfV7GVOhsVvMTleSF6-lbLgrsBQ9qbXqrsHizT1GghTC36f&vault=true&intent=subscription"
+                script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&vault=true&intent=subscription`
         script.setAttribute("data-sdk-integration-source", "button-factory")
         script.addEventListener("load", () => {
           if (window.paypal) {
@@ -45,7 +44,7 @@ export default function SubscriptionPage() {
                 },
                 createSubscription: (data: any, actions: any) =>
                   actions.subscription.create({
-                    plan_id: "P-33031622G52172046M72EPJY",
+                    plan_id: process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!,
                   }),
                 onApprove: (data: any, actions: any) => {
                   toast.success("Subscription successful!")
@@ -74,7 +73,7 @@ export default function SubscriptionPage() {
             },
             createSubscription: (data: any, actions: any) =>
               actions.subscription.create({
-                plan_id: "P-33031622G52172046M72EPJY",
+                plan_id: process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!,
               }),
             onApprove: (data: any, actions: any) => {
               toast.success("Subscription successful!")
