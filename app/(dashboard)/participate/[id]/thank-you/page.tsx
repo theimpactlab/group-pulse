@@ -1,12 +1,13 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle } from "lucide-react"
 
-export default function ThankYouPage({ params }: { params: { id: string } }) {
+export default function ThankYouPage() {
   const router = useRouter()
+    const params = useParams()
 
   return (
     <div className="container mx-auto py-10 max-w-md">
