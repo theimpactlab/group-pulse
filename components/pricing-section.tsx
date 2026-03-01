@@ -146,7 +146,7 @@ export function PricingSection() {
             </CardContent>
             <CardFooter>
               <div className="w-full rounded-md bg-white p-4">
-                <div id=`paypal-button-container-${process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID}` />
+                                <div id={`paypal-button-container-${process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID}`} />
               </div>
             </CardFooter>
           </Card>
