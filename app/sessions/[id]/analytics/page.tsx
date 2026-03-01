@@ -7,7 +7,7 @@ import { redirect } from "next/navigation"
 // Create a Supabase client
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: {
-    autoRefreshToken: false
+    autoRefreshToken: false,
     persistSession: false,
   },
 })
