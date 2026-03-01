@@ -15,12 +15,12 @@ export function PricingSection() {
       const script = document.createElement("script")
       script.id = scriptId
       script.src =
-        "https://www.paypal.com/sdk/js?client-id=AX_8QiXsmnhX9jBZoE-iwUiJo3ZG78HFTvfV7GVOhsVvMTleSF6-lbLgrsBQ9qbXqrsHizT1GghTC36f&vault=true&intent=subscription"
+        `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&vault=true&intent=subscription`
       script.setAttribute("data-sdk-integration-source", "button-factory")
 
       script.addEventListener("load", () => {
         if (typeof window !== "undefined" && window.paypal) {
-          const containerId = "paypal-button-container-P-33031622G52172046M72EPJY"
+          const containerId = `paypal-button-container-${process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID}`
           const container = document.getElementById(containerId)
           if (container) container.innerHTML = ""
 
@@ -33,7 +33,7 @@ export function PricingSection() {
             },
             createSubscription: function (data: any, actions: any) {
               return actions.subscription.create({
-                plan_id: "P-33031622G52172046M72EPJY",
+                plan_id: process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID!,
               })
             },
             onApprove: function (data: any, actions: any) {
@@ -146,7 +146,7 @@ export function PricingSection() {
             </CardContent>
             <CardFooter>
               <div className="w-full rounded-md bg-white p-4">
-                <div id="paypal-button-container-P-33031622G52172046M72EPJY" />
+                <div id=`paypal-button-container-${process.env.NEXT_PUBLIC_PAYPAL_PLAN_ID}` />
               </div>
             </CardFooter>
           </Card>
