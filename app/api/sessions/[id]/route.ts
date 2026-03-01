@@ -9,13 +9,13 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
     autoRefreshToken: false,
     persistSession: false,
   },
-}
+})
 
 // Helper function to check if a URL is from Supabase Storage
 function isSupabaseStorageUrl(url: string): boolean {
   if (!url) return false
 
-  const supabaseUrl = process.env.NEXT_UBLIC_SUPABASE_URL
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!supabaseUrl) return false
 
   // Check if the URL contains the Supabase URL and storage path
