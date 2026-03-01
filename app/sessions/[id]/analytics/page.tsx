@@ -7,19 +7,19 @@ import { redirect } from "next/navigation"
 // Create a Supabase client
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
   auth: {
-    autoRefreshToken: false,
+    autoRefreshToken: false
     persistSession: false,
   },
 })
 
-export default async function AnalyticsPage({ params }: { params: { id: string } }) {
+export default async function AnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
   // Check authentication
   const session = await getServerSession(authOptions)
   if (!session?.user) {
     redirect("/login")
   }
 
-  const sessionId = params.id
+  const { id: sessionId } = await params
 
   // Fetch session data
   const { data: sessionData, error: sessionError } = await supabase
