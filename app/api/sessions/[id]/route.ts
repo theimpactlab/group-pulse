@@ -9,13 +9,13 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
     autoRefreshToken: false,
     persistSession: false,
   },
-})
+}
 
 // Helper function to check if a URL is from Supabase Storage
 function isSupabaseStorageUrl(url: string): boolean {
   if (!url) return false
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseUrl = process.env.NEXT_UBLIC_SUPABASE_URL
   if (!supabaseUrl) return false
 
   // Check if the URL contains the Supabase URL and storage path
@@ -83,7 +83,7 @@ async function cleanupSessionImages(sessionContent: any[]): Promise<void> {
 
 // Add this DELETE method to the file to handle session deletion properly
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions)
@@ -92,7 +92,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const id = params.id
+    const { id } = await params
 
     if (!id) {
       return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
@@ -142,7 +142,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions)
@@ -151,7 +151,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const id = params.id
+    const { id } = await params
 
     if (!id) {
       return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
