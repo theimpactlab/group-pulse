@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,8 @@ import { SimpleTestComponent } from "@/components/poll-participants/simple-test-
 import { WhiteboardParticipant } from "@/components/poll-participants/whiteboard-participant"
 import { SliderParticipant } from "@/components/poll-participants/slider-participant"
 
-export default function ParticipatePage({ params }: { params: { id: string } }) {
+export default function ParticipatePage() {
+    const params = useParams()
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
