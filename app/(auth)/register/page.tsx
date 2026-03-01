@@ -66,7 +66,7 @@ export default function RegisterPage() {
 
       if (data.user) {
         // Create a profile record in the profiles table
-        const { error: profileError } = await supabase.from("profiles").insert([
+        const { error: profileError } = await (supabase.from("profiles") as any).insert([
           {
             id: data.user.id,
             name,
