@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ListOrdered, GripVertical, ArrowUp, ArrowDown } from "lucide-react"
@@ -9,14 +9,23 @@ import type { RankingPoll } from "@/types/poll-types"
 interface RankingParticipantProps {
   poll: RankingPoll
   onSubmit: (response: { ranking: string[] }) => void
+  onChange?: (response: { ranking: string[] }) => void
   disabled?: boolean
 }
 
-export function RankingParticipant({ poll, onSubmit, disabled }: RankingParticipantProps) {
+export function RankingParticipant({ poll, onSubmit, onChange, disabled }: RankingParticipantProps) {
   const [items, setItems] = useState(() =>
     poll.data.options.map((opt) => ({ id: opt.id, text: opt.text }))
   )
   const [hasSubmitted, setHasSubmitted] = useState(false)
+
+  // Report the current ranking to parent on every reorder (and on mount)
+  useEffect(() => {
+    const ranking = items.map((item) => item.id)
+    const response = { ranking }
+    if (onChange) onChange(response)
+    else onSubmit(response)
+  }, [items])
 
   const moveItem = useCallback((index: number, direction: "up" | "down") => {
     setItems((prev) => {
