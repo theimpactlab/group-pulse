@@ -345,6 +345,7 @@ export default function ParticipatePage() {
               <PointsAllocationParticipant
                 poll={poll}
                 onSubmit={(data) => updateResponse(poll.id, data)}
+                onChange={(data) => updateResponse(poll.id, data)}
                 disabled={submitting}
               />
             )}
@@ -367,6 +368,7 @@ export default function ParticipatePage() {
           <QuizParticipant
             poll={poll}
             onSubmit={(data) => updateResponse(poll.id, data)}
+            onChange={(data) => updateResponse(poll.id, data)}
             disabled={submitting}
           />
         )
@@ -376,6 +378,7 @@ export default function ParticipatePage() {
           <RankingParticipant
             poll={poll}
             onSubmit={(data) => updateResponse(poll.id, data)}
+            onChange={(data) => updateResponse(poll.id, data)}
             disabled={submitting}
           />
         )
@@ -394,6 +397,7 @@ export default function ParticipatePage() {
           <ImageChoiceParticipant
             poll={poll}
             onSubmit={(data) => updateResponse(poll.id, data)}
+            onChange={(data) => updateResponse(poll.id, data)}
             disabled={submitting}
           />
         )
