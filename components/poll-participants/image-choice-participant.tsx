@@ -9,10 +9,11 @@ import type { ImageChoicePoll } from "@/types/poll-types"
 interface ImageChoiceParticipantProps {
   poll: ImageChoicePoll
   onSubmit: (response: { selectedOptionId: string }) => void
+  onChange?: (response: { selectedOptionId: string }) => void
   disabled?: boolean
 }
 
-export function ImageChoiceParticipant({ poll, onSubmit, disabled }: ImageChoiceParticipantProps) {
+export function ImageChoiceParticipant({ poll, onSubmit, onChange, disabled }: ImageChoiceParticipantProps) {
   const [selectedOption, setSelectedOption] = useState<string>("")
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
@@ -20,6 +21,10 @@ export function ImageChoiceParticipant({ poll, onSubmit, disabled }: ImageChoice
   const handleSelect = (optionId: string) => {
     if (hasSubmitted || disabled) return
     setSelectedOption(optionId)
+    // Report selection to parent immediately so "Submit All" can capture it
+    const response = { selectedOptionId: optionId }
+    if (onChange) onChange(response)
+    else onSubmit(response)
   }
 
   const handleSubmit = () => {
