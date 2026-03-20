@@ -34,20 +34,16 @@ export function WhiteboardParticipant({
   onResponse,
 }: WhiteboardParticipantProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{poll.data.title}</h1>
-            {poll.data.instructions && <p className="text-sm text-muted-foreground mt-1">{poll.data.instructions}</p>}
-          </div>
-        </div>
+    <div className="w-full">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold">{poll.data.title}</h2>
+        {poll.data.instructions && <p className="text-sm text-muted-foreground mt-1">{poll.data.instructions}</p>}
       </div>
 
-      <div className="flex-1">
+      <div className="w-full overflow-auto">
         <WhiteboardCanvas
-          width={Math.max(poll.data.canvasWidth || 1400, 1400)}
-          height={Math.max(poll.data.canvasHeight || 800, 800)}
+          width={Math.min(poll.data.canvasWidth || 1200, 1200)}
+          height={Math.min(poll.data.canvasHeight || 600, 600)}
           backgroundColor={poll.data.backgroundColor || "#ffffff"}
           allowDrawing={poll.data.allowDrawing !== false}
           allowStickyNotes={poll.data.allowStickyNotes !== false}
