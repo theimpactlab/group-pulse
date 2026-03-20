@@ -51,6 +51,22 @@ export async function POST(request: Request) {
     console.log("Bucket: images")
     console.log("File path:", filePath)
 
+    // Ensure the "images" bucket exists (create if it doesn't)
+    const { data: buckets } = await supabaseAdmin.storage.listBuckets()
+    const imagesBucket = buckets?.find((b) => b.name === "images")
+    if (!imagesBucket) {
+      console.log("Creating 'images' storage bucket...")
+      const { error: createBucketError } = await supabaseAdmin.storage.createBucket("images", {
+        public: true,
+        fileSizeLimit: 5 * 1024 * 1024, // 5MB
+        allowedMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"],
+      })
+      if (createBucketError) {
+        console.error("Error creating bucket:", createBucketError)
+        return NextResponse.json({ message: "Failed to initialize storage: " + createBucketError.message }, { status: 500 })
+      }
+    }
+
     // Upload to Supabase Storage using admin privileges
     const { data, error: uploadError } = await supabaseAdmin.storage.from("images").upload(filePath, buffer, {
       contentType: file.type,
