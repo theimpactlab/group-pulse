@@ -11,12 +11,24 @@ import type { QuizPoll } from "@/types/poll-types"
 interface QuizParticipantProps {
   poll: QuizPoll
   onSubmit: (response: { selectedOptionId: string; isCorrect: boolean }) => void
+  onChange?: (response: { selectedOptionId: string; isCorrect: boolean }) => void
   disabled?: boolean
 }
 
-export function QuizParticipant({ poll, onSubmit, disabled }: QuizParticipantProps) {
+export function QuizParticipant({ poll, onSubmit, onChange, disabled }: QuizParticipantProps) {
   const [selectedOption, setSelectedOption] = useState<string>("")
   const [hasSubmitted, setHasSubmitted] = useState(false)
+
+  const handleOptionSelect = (value: string) => {
+    if (hasSubmitted) return
+    setSelectedOption(value)
+    // Report selection to parent immediately so "Submit All" can capture it
+    const selected = poll.data.options.find((opt) => opt.id === value)
+    const isCorrect = selected?.isCorrect || false
+    const response = { selectedOptionId: value, isCorrect }
+    if (onChange) onChange(response)
+    else onSubmit(response)
+  }
 
   const handleSubmit = () => {
     if (!selectedOption) return
@@ -47,9 +59,7 @@ export function QuizParticipant({ poll, onSubmit, disabled }: QuizParticipantPro
       <CardContent className="space-y-4">
         <RadioGroup
           value={selectedOption}
-          onValueChange={(value) => {
-            if (!hasSubmitted) setSelectedOption(value)
-          }}
+          onValueChange={handleOptionSelect}
           disabled={disabled || hasSubmitted}
         >
           {poll.data.options.map((option) => (
