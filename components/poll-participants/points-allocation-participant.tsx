@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,10 +10,11 @@ import type { PointsAllocationPoll } from "@/types/poll-types"
 interface PointsAllocationParticipantProps {
   poll: PointsAllocationPoll
   onSubmit: (response: Record<string, number>) => void
+  onChange?: (response: Record<string, number>) => void
   disabled?: boolean
 }
 
-export function PointsAllocationParticipant({ poll, onSubmit, disabled }: PointsAllocationParticipantProps) {
+export function PointsAllocationParticipant({ poll, onSubmit, onChange, disabled }: PointsAllocationParticipantProps) {
   const { question, totalPoints, options, minPointsPerOption = 0, maxPointsPerOption } = poll.data
 
   const [allocations, setAllocations] = useState<Record<string, number>>(
@@ -23,6 +24,14 @@ export function PointsAllocationParticipant({ poll, onSubmit, disabled }: Points
 
   const usedPoints = Object.values(allocations).reduce((sum, val) => sum + val, 0)
   const remainingPoints = totalPoints - usedPoints
+
+  // Report allocations to parent on every change so "Submit All" can capture them
+  useEffect(() => {
+    if (usedPoints > 0) {
+      if (onChange) onChange(allocations)
+      else if (!hasSubmitted) onSubmit(allocations)
+    }
+  }, [allocations])
 
   const handleChange = (optionId: string, value: string) => {
     const numValue = Math.max(0, parseInt(value) || 0)
