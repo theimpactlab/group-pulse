@@ -16,6 +16,10 @@ import { PointsAllocationParticipant } from "@/components/poll-participants/poin
 import { SimpleTestComponent } from "@/components/poll-participants/simple-test-component"
 import { WhiteboardParticipant } from "@/components/poll-participants/whiteboard-participant"
 import { SliderParticipant } from "@/components/poll-participants/slider-participant"
+import { QuizParticipant } from "@/components/poll-participants/quiz-participant"
+import { RankingParticipant } from "@/components/poll-participants/ranking-participant"
+import { QAParticipant } from "@/components/poll-participants/qa-participant"
+import { ImageChoiceParticipant } from "@/components/poll-participants/image-choice-participant"
 
 export default function ParticipatePage() {
     const params = useParams()
@@ -358,7 +362,43 @@ export default function ParticipatePage() {
           />
         )
 
-      default:
+      case "quiz":
+        return (
+          <QuizParticipant
+            poll={poll}
+            onSubmit={(data) => updateResponse(poll.id, data)}
+            disabled={submitting}
+          />
+        )
+
+      case "ranking":
+        return (
+          <RankingParticipant
+            poll={poll}
+            onSubmit={(data) => updateResponse(poll.id, data)}
+            disabled={submitting}
+          />
+        )
+
+      case "qa":
+        return (
+          <QAParticipant
+            poll={poll}
+            onSubmit={(data) => updateResponse(poll.id, data)}
+            disabled={submitting}
+          />
+        )
+
+      case "image-choice":
+        return (
+          <ImageChoiceParticipant
+            poll={poll}
+            onSubmit={(data) => updateResponse(poll.id, data)}
+            disabled={submitting}
+          />
+        )
+
+            default:
         return (
           <div className="text-center py-8">
             <h3 className="text-lg font-medium mb-2">Poll Type: {poll.type}</h3>
