@@ -452,15 +452,17 @@ const WhiteboardCanvas = ({
   useEffect(() => {
     const updateCanvasSize = () => {
       if (containerRef.current) {
-        const availableWidth = window.innerWidth - 100 // Small margin
-        const availableHeight = window.innerHeight - 200 // Space for header and tools
+        // Use parent container width if available, fallback to window
+        const parentEl = containerRef.current.parentElement
+        const availableWidth = parentEl ? parentEl.clientWidth - 2 : Math.min(window.innerWidth - 100, width)
+        const availableHeight = Math.min(window.innerHeight - 200, height)
 
         console.log("[v0] Available space:", availableWidth, "x", availableHeight)
         console.log("[v0] Requested size:", width, "x", height)
 
         setCanvasSize({
-          width: Math.max(1200, Math.min(availableWidth, width)), // Use more space, min 1200px
-          height: Math.max(700, Math.min(availableHeight, height)), // Use more space, min 700px
+          width: Math.max(600, Math.min(availableWidth, width)),
+          height: Math.max(400, Math.min(availableHeight, height)),
         })
       }
     }
