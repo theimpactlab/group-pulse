@@ -9,6 +9,7 @@ import { Loader2, BarChart3, PieChart, CloudRain, MessageSquare, SlidersHorizont
 import { supabase } from "@/lib/supabase" // Use the singleton
 import type { PollType } from "@/types/poll-types"
 import WhiteboardCanvas from "@/components/whiteboard-canvas"
+import { WordCloudResults } from "@/components/poll-results/word-cloud-results"
 
 export default function PublicResultsPage() {
   const params = useParams()
@@ -384,8 +385,9 @@ export default function PublicResultsPage() {
       </div>
     )
   }
-
-  const renderWordCloudResults = (poll: any, pollResponses: any[]) => {
+    const renderWordCloudResults = (poll: any, pollResponses: any[]) => {
+      return <WordCloudResults poll={poll} pollResponses={pollResponses} />
+    }
     // In a real implementation, you would use a word cloud library
     // For now, we'll just show the words with frequency
     const wordCounts: Record<string, number> = {}
