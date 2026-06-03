@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import type { PollType } from "@/types/poll-types"
 import WhiteboardCanvas from "@/components/whiteboard-canvas"
+import { WordCloudResults } from "@/components/poll-results/word-cloud-results"
 
 export default function ResultsPage() {
   const router = useRouter()
@@ -189,8 +190,9 @@ export default function ResultsPage() {
       </div>
     )
   }
-
-  const renderWordCloudResults = (poll: any, pollResponses: any[]) => {
+    const renderWordCloudResults = (poll: any, pollResponses: any[]) => {
+      return <WordCloudResults poll={poll} pollResponses={pollResponses} />
+    }
     // In a real implementation, you would use a word cloud library
     // For now, we'll just show the words with frequency
     const wordCounts: Record<string, number> = {}
