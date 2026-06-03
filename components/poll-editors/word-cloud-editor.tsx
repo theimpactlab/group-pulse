@@ -49,7 +49,7 @@ export function WordCloudEditor({ poll, onChange }: WordCloudEditorProps) {
         <Slider
           id="maxEntries"
           min={1}
-          max={15}
+          max={25}
           step={1}
           value={[poll.data.maxEntries]}
           onValueChange={handleMaxEntriesChange}
