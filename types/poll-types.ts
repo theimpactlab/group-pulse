@@ -22,7 +22,10 @@ export interface WordCloudPoll extends InteractiveElement {
   type: "word-cloud"
   data: {
     question: string
-    maxEntries: number // Maximum entries per participant
+    maxEntries: number // Maximum responses per participant
+    maxCharacters?: number // Maximum characters per response
+    allowMultipleSubmissions?: boolean
+    requireUniqueResponses?: boolean
   }
 }
 
