@@ -54,6 +54,7 @@ function getWordCloudData(pollResponses: any[]) {
       if (!wordCounts[key]) {
         wordCounts[key] = { label: cleanedWord, count: 0 }
       }
+
       wordCounts[key].count += 1
     })
   })
@@ -113,6 +114,7 @@ export function WordCloudResults({ poll, pollResponses }: WordCloudResultsProps)
           <div className="space-y-2 max-h-[360px] overflow-y-auto rounded-lg border p-3">
             {sortedWords.map((word) => {
               const percentage = Math.round((word.count / rawResponses.length) * 100)
+
               return (
                 <div key={word.label.toLowerCase()} className="space-y-1">
                   <div className="flex justify-between text-sm">
@@ -134,7 +136,10 @@ export function WordCloudResults({ poll, pollResponses }: WordCloudResultsProps)
           <h4 className="font-medium mb-3">Raw responses</h4>
           <div className="space-y-2 max-h-[360px] overflow-y-auto rounded-lg border p-3">
             {rawResponses.map((response, index) => (
-              <div key={`${response.participantName}-${response.word}-${index}`} className="flex justify-between gap-4 rounded bg-gray-50 p-2 text-sm">
+              <div
+                key={`${response.participantName}-${response.word}-${index}`}
+                className="flex justify-between gap-4 rounded bg-gray-50 p-2 text-sm"
+              >
                 <span>{response.word}</span>
                 <span className="text-muted-foreground whitespace-nowrap">{response.participantName}</span>
               </div>
