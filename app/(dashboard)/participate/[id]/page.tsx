@@ -20,6 +20,7 @@ import { QuizParticipant } from "@/components/poll-participants/quiz-participant
 import { RankingParticipant } from "@/components/poll-participants/ranking-participant"
 import { QAParticipant } from "@/components/poll-participants/qa-participant"
 import { ImageChoiceParticipant } from "@/components/poll-participants/image-choice-participant"
+import { WordCloudParticipant } from "@/components/poll-participants/word-cloud-participant"
 
 export default function ParticipatePage() {
     const params = useParams()
@@ -254,23 +255,16 @@ export default function ParticipatePage() {
             {renderMultipleChoice(poll)}
           </div>
         )
-
-      case "word-cloud":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">{pollData.question || "Word Cloud"}</h3>
-            <div>
-              <Label htmlFor={`word-input-${poll.id}`}>Enter a word or phrase</Label>
-              <Input
-                id={`word-input-${poll.id}`}
-                value={responses[poll.id]?.word || ""}
-                onChange={(e) => updateResponse(poll.id, { word: e.target.value })}
-                placeholder="Type your response..."
-                maxLength={pollData.maxEntries || 50}
-              />
-            </div>
-          </div>
-        )
+    
+    case "word-cloud":
+      return (
+        <WordCloudParticipant
+          poll={poll}
+          value={responses[poll.id]}
+          onChange={(data) => updateResponse(poll.id, data)}
+          disabled={submitting}
+        />
+      )
 
       case "open-ended":
         return (

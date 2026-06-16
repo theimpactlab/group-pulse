@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import type { PollType } from "@/types/poll-types"
 import WhiteboardCanvas from "@/components/whiteboard-canvas"
+import { WordCloudResults } from "@/components/poll-results/word-cloud-results"
 
 export default function ResultsPage() {
   const router = useRouter()
@@ -189,76 +190,41 @@ export default function ResultsPage() {
       </div>
     )
   }
+    const renderWordCloudResults = (poll: any, pollResponses: any[]) => {
+      return <WordCloudResults poll={poll} pollResponses={pollResponses} />
+    }
 
-  const renderWordCloudResults = (poll: any, pollResponses: any[]) => {
-    // In a real implementation, you would use a word cloud library
-    // For now, we'll just show the words with frequency
-    const wordCounts: Record<string, number> = {}
-
-    pollResponses.forEach((response) => {
-      // Ensure response.response is a string
-      const responseText = typeof response.response === "string" ? response.response : String(response.response || "")
-
-      const word = responseText.toLowerCase().trim()
-      if (word) {
-        wordCounts[word] = (wordCounts[word] || 0) + 1
-      }
-    })
-
-    // Sort words by frequency
-    const sortedWords = Object.entries(wordCounts).sort(([, countA]: any, [, countB]: any) => countB - countA)
-
-    return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
-        <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg min-h-[200px]">
-          {sortedWords.map(([word, count]: any) => (
-            <div
-              key={word}
-              className="bg-primary text-primary-foreground px-3 py-1 rounded-full"
-              style={{
-                fontSize: `${Math.max(0.8, Math.min(2, 0.8 + (count / Math.max(...(Object.values(wordCounts) as number[]))) * 1.2))}rem`,
-              }}
-            >
-              {word} ({count})
-            </div>
-          ))}
-        </div>
-        <p className="text-sm text-muted-foreground">Total responses: {pollResponses.length}</p>
-      </div>
-    )
-  }
-
-  const renderOpenEndedResults = (poll: any, pollResponses: any[]) => {
-    return (
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">{poll.data.question}</h3>
-        <div className="space-y-3 max-h-[400px] overflow-y-auto">
-          {pollResponses.map((response, index) => {
-            // Ensure response.response is a string
-            const responseText =
-              typeof response.response === "string"
-                ? response.response
-                : typeof response.response === "object"
-                  ? JSON.stringify(response.response)
-                  : String(response.response || "")
-
-            return (
-              <div key={`${response.id || index}`} className="p-3 bg-gray-50 rounded-lg">
-                <div className="flex justify-between items-start">
-                  <p className="whitespace-pre-wrap">{responseText}</p>
-                  <span className="text-xs text-muted-foreground ml-2">{response.participant_name || "Anonymous"}</span>
+    const renderOpenEndedResults = (poll: any, pollResponses: any[]) => {
+      return (
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">{String(poll.data.question)}</h3>
+          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            {pollResponses.map((response, index) => {
+              const responseText =
+                typeof response.response === "string"
+                  ? response.response
+                  : typeof response.response === "object"
+                    ? JSON.stringify(response.response)
+                    : String(response.response || "")
+    
+              return (
+                <div key={`${response.id || index}`} className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <p className="whitespace-pre-wrap">{responseText}</p>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {String(response.participant_name || "Anonymous")}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
+          <p className="text-sm text-muted-foreground">Total responses: {pollResponses.length}</p>
         </div>
-        <p className="text-sm text-muted-foreground">Total responses: {pollResponses.length}</p>
-      </div>
-    )
-  }
+      )
+    }
 
-  const renderScaleResults = (poll: any, pollResponses: any[]) => {
+    const renderScaleResults = (poll: any, pollResponses: any[]) => {
     // Calculate average
     const sum = pollResponses.reduce((acc, response) => acc + response.response, 0)
     const average = sum / pollResponses.length
