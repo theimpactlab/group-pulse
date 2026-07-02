@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-
-// Create a Supabase client with the service role key for admin access
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export async function POST(request: Request) {
   try {
@@ -37,6 +29,8 @@ export async function POST(request: Request) {
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json({ message: "File size must be less than 5MB" }, { status: 400 })
     }
+
+    const supabaseAdmin = getSupabaseAdmin()
 
     // Generate a unique filename
     const fileExt = file.name.split(".").pop()

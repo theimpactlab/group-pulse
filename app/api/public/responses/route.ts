@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-// Create a Supabase client with the service role key for admin access
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +9,8 @@ export async function POST(request: Request) {
     if (!responseData.id || !responseData.poll_id || !responseData.session_id) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
+
+    const supabaseAdmin = getSupabaseAdmin()
 
     // Insert the response using admin privileges to bypass RLS
     const { data, error } = await supabaseAdmin
@@ -44,4 +38,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: error.message || "Failed to submit response" }, { status: 500 })
   }
 }
-

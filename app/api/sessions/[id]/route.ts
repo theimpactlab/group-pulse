@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-
-// Create a Supabase client with the service role key for admin access
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 // Helper function to check if a URL is from Supabase Storage
 function isSupabaseStorageUrl(url: string): boolean {
@@ -60,6 +52,7 @@ async function cleanupSessionImages(sessionContent: any[]): Promise<void> {
     if (imageUrls.length === 0) return
 
     console.log(`Found ${imageUrls.length} images to delete`)
+    const supabaseAdmin = getSupabaseAdmin()
 
     // Delete each image from storage
     for (const url of imageUrls) {
@@ -97,6 +90,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (!id) {
       return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
     }
+
+    const supabaseAdmin = getSupabaseAdmin()
 
     // First verify that the session belongs to the current user
     const { data: sessionData, error: fetchError } = await supabaseAdmin
@@ -159,6 +154,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // Parse the request body
     const body = await request.json()
+    const supabaseAdmin = getSupabaseAdmin()
 
     // First verify that the session belongs to the current user
     const { data: sessionData, error: fetchError } = await supabaseAdmin

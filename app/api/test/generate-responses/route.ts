@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-
-// Create a Supabase client with the service role key for admin access
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 // Helper function to generate a random response for a slide
 function generateRandomResponse(sessionId: string, slide: any) {
@@ -113,6 +105,8 @@ export async function POST(request: Request) {
     if (!sessionId) {
       return NextResponse.json({ message: "Session ID is required" }, { status: 400 })
     }
+
+    const supabaseAdmin = getSupabaseAdmin()
 
     // Fetch the session to get slides
     const { data: sessionData, error: sessionError } = await supabaseAdmin

@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
 export async function GET() {
   try {
     // Create a Supabase client with the service role key
-    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
+    const supabaseAdmin = getSupabaseAdmin()
 
     // List all buckets to test connection
     const { data: buckets, error: bucketsError } = await supabaseAdmin.storage.listBuckets()
