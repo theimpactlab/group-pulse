@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@auth/core':
         specifier: latest
-        version: 0.41.3(nodemailer@8.0.10)
+        version: 0.41.3(nodemailer@8.0.11)
       '@hookform/resolvers':
         specifier: ^3.9.1
         version: 3.10.0(react-hook-form@7.77.0(react@19.2.7))
@@ -97,7 +97,7 @@ importers:
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.16))(@types/react@19.2.16)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@supabase/supabase-js':
         specifier: latest
-        version: 2.110.8
+        version: 2.110.9
       autoprefixer:
         specifier: ^10.4.20
         version: 10.5.0(postcss@8.5.15)
@@ -133,13 +133,13 @@ importers:
         version: 16.2.11(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next-auth:
         specifier: latest
-        version: 4.24.15(@auth/core@0.41.3(nodemailer@8.0.10))(next@16.2.11(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(nodemailer@8.0.10)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        version: 4.24.15(@auth/core@0.41.3(nodemailer@8.0.11))(next@16.2.11(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(nodemailer@8.0.11)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       next-themes:
         specifier: ^0.4.4
         version: 0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       nodemailer:
-        specifier: '>=6.9.9'
-        version: 8.0.10
+        specifier: ^8.0.11
+        version: 8.0.11
       path:
         specifier: latest
         version: 0.12.7
@@ -1529,31 +1529,31 @@ packages:
   '@radix-ui/rect@1.1.1':
     resolution: {integrity: sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==}
 
-  '@supabase/auth-js@2.110.8':
-    resolution: {integrity: sha512-TQ5neTUDX2C2WmyYa03yGhLMkhdE/SkHXtK8/qxO/APUy3rsymsJCBP48p4jcN6iO2G0ow6RRexQd2mX+dSyJg==}
+  '@supabase/auth-js@2.110.9':
+    resolution: {integrity: sha512-XQIWyJfwEUdtzinuLUWPNSJbJKWdCQPqC7dDY45lA1qhX/OzvGPE+4OyPPZVOVWVh4DlPvk5RT2XL6SEAY0MoA==}
     engines: {node: '>=22.0.0'}
 
-  '@supabase/functions-js@2.110.8':
-    resolution: {integrity: sha512-5yB9TLYzvv2oSQxwb0gamEvIAsuH66pVt7AM/pz03S7wN6ehD34GNgbShrccetqPedXQSz7e/1hAJ9NeEhoZVg==}
+  '@supabase/functions-js@2.110.9':
+    resolution: {integrity: sha512-iSL6ih4vWK5Myc1lCuDoApfeB3Ov3cZIExvlCuQEZTzyzOKG4SLxVKPrBZG/QzwAjp7TEy0LCd0zZQtE5UAaDQ==}
     engines: {node: '>=22.0.0'}
 
   '@supabase/phoenix@0.4.5':
     resolution: {integrity: sha512-aAn9H9ovVyeApKy11OWOrrOGq8DV68yWeH4ud2lN9fzn4aO8Zb5GLL9m1pUg9nLqIcT+ZDfAcsZe0E/nqdv2lw==}
 
-  '@supabase/postgrest-js@2.110.8':
-    resolution: {integrity: sha512-QeRROxl1PpOZw5Jzi7BwdN9icsycMrLlCCvsjS0hYLW+nZoaT46zdagz/glJirj8jHF4jSd5Jyipuae2cBClCw==}
+  '@supabase/postgrest-js@2.110.9':
+    resolution: {integrity: sha512-YEfUzBMNkDE9OMfjzZnVgJH9h7y+wxxXryrgYk/t3boVtjPPlfwTdWRx8YkihuIbl4zxzdG4I0yiS4nd4Lmj8Q==}
     engines: {node: '>=22.0.0'}
 
-  '@supabase/realtime-js@2.110.8':
-    resolution: {integrity: sha512-mwX7ituX6O31fLf+0g65rpLlNxqgnMaPltPsQwzox6jfmbfVl3tCxXrfr3HEsQcCRjpjuJG1+A0vFzP1yVjKHA==}
+  '@supabase/realtime-js@2.110.9':
+    resolution: {integrity: sha512-XHau+5jIOEAtS9hNiSrL4/2SXSt0EApChsj+f2VJL2mL+eicpUYLkANBu+5awFLIjXGOkys+ClYQ7Dg/3UTHcA==}
     engines: {node: '>=22.0.0'}
 
-  '@supabase/storage-js@2.110.8':
-    resolution: {integrity: sha512-CcfhkZFBLxsthgUabZKxwfsoXdrikIGsL3LsGoV3FZTqCMx/s1y49taT4jT/oya5+1IuB0sFFHw6pF0o0iJniQ==}
+  '@supabase/storage-js@2.110.9':
+    resolution: {integrity: sha512-UmyL+SB4cOBsejAaJ8LnLIm31585shJtnTezCCLMHyo2AauoH13sKJqPllf/8HMcGYqd0a4kHrA5t2nz+MSARA==}
     engines: {node: '>=22.0.0'}
 
-  '@supabase/supabase-js@2.110.8':
-    resolution: {integrity: sha512-E5qzoe74zhJRv4wRcbO9eMYzeQDb/+h6c603pL8shcxLGBjTKsIF7XXj05IcNj23TLDgJN1WkMw7mwAPyu5dZg==}
+  '@supabase/supabase-js@2.110.9':
+    resolution: {integrity: sha512-C8UVe+x6hymwiLdJntQCm9zMD5+40tWF6j+17Z6g8NJnBAWEiuM9wXYAqgDzGAQF6oqrkHddmnZwWZZtEp0zeA==}
     engines: {node: '>=22.0.0'}
 
   '@swc/helpers@0.5.15':
@@ -1963,8 +1963,8 @@ packages:
     resolution: {integrity: sha512-Uzmd6LXpouKo8EUK68IjH4+E01w/hXyV3R3g/geCJo+rXLNfh1xucB+LOzYEOQPSiUK3h/xZf0cQGcSsmyL2Og==}
     engines: {node: '>=18'}
 
-  nodemailer@8.0.10:
-    resolution: {integrity: sha512-BLFuSth7QtHOkBzyqTehWWyub0NTRDuK2Q2SQfnGLsrJnzyU+Yeh4WpV1eZGuARFj1xQJHIdnTuJZLP+b9R1GQ==}
+  nodemailer@8.0.11:
+    resolution: {integrity: sha512-nrO/pDAUKl+wXX+lx16tDLbnm0fW6sK/x8mgohaCpg+CdCEl482bD4tCuAZk2DyliruiNTIZxRCoWkDqJEnAiA==}
     engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
@@ -2373,7 +2373,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@auth/core@0.41.3(nodemailer@8.0.10)':
+  '@auth/core@0.41.3(nodemailer@8.0.11)':
     dependencies:
       '@panva/hkdf': 1.2.1
       jose: 6.2.4
@@ -2381,7 +2381,7 @@ snapshots:
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
     optionalDependencies:
-      nodemailer: 8.0.10
+      nodemailer: 8.0.11
 
   '@babel/runtime@7.29.7': {}
 
@@ -3559,37 +3559,37 @@ snapshots:
 
   '@radix-ui/rect@1.1.1': {}
 
-  '@supabase/auth-js@2.110.8':
+  '@supabase/auth-js@2.110.9':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/functions-js@2.110.8':
+  '@supabase/functions-js@2.110.9':
     dependencies:
       tslib: 2.8.1
 
   '@supabase/phoenix@0.4.5': {}
 
-  '@supabase/postgrest-js@2.110.8':
+  '@supabase/postgrest-js@2.110.9':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/realtime-js@2.110.8':
+  '@supabase/realtime-js@2.110.9':
     dependencies:
       '@supabase/phoenix': 0.4.5
       tslib: 2.8.1
 
-  '@supabase/storage-js@2.110.8':
+  '@supabase/storage-js@2.110.9':
     dependencies:
       iceberg-js: 0.8.1
       tslib: 2.8.1
 
-  '@supabase/supabase-js@2.110.8':
+  '@supabase/supabase-js@2.110.9':
     dependencies:
-      '@supabase/auth-js': 2.110.8
-      '@supabase/functions-js': 2.110.8
-      '@supabase/postgrest-js': 2.110.8
-      '@supabase/realtime-js': 2.110.8
-      '@supabase/storage-js': 2.110.8
+      '@supabase/auth-js': 2.110.9
+      '@supabase/functions-js': 2.110.9
+      '@supabase/postgrest-js': 2.110.9
+      '@supabase/realtime-js': 2.110.9
+      '@supabase/storage-js': 2.110.9
 
   '@swc/helpers@0.5.15':
     dependencies:
@@ -3903,7 +3903,7 @@ snapshots:
 
   nanoid@3.3.12: {}
 
-  next-auth@4.24.15(@auth/core@0.41.3(nodemailer@8.0.10))(next@16.2.11(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(nodemailer@8.0.10)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  next-auth@4.24.15(@auth/core@0.41.3(nodemailer@8.0.11))(next@16.2.11(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(nodemailer@8.0.11)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       '@babel/runtime': 7.29.7
       '@panva/hkdf': 1.2.1
@@ -3918,8 +3918,8 @@ snapshots:
       react-dom: 19.2.7(react@19.2.7)
       uuid: 11.1.1
     optionalDependencies:
-      '@auth/core': 0.41.3(nodemailer@8.0.10)
-      nodemailer: 8.0.10
+      '@auth/core': 0.41.3(nodemailer@8.0.11)
+      nodemailer: 8.0.11
 
   next-themes@0.4.6(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
@@ -3952,7 +3952,7 @@ snapshots:
 
   node-releases@2.0.47: {}
 
-  nodemailer@8.0.10: {}
+  nodemailer@8.0.11: {}
 
   normalize-path@3.0.0: {}
 
