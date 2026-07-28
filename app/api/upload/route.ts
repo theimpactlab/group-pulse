@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 
-// Create a Supabase client with the service role key for admin access
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
 
 export async function POST(request: Request) {
   try {
@@ -52,11 +45,11 @@ export async function POST(request: Request) {
     console.log("File path:", filePath)
 
     // Ensure the "images" bucket exists (create if it doesn't)
-    const { data: buckets } = await supabaseAdmin.storage.listBuckets()
+    const { data: buckets } = await getSupabaseAdmin().storage.listBuckets()
     const imagesBucket = buckets?.find((b) => b.name === "images")
     if (!imagesBucket) {
       console.log("Creating 'images' storage bucket...")
-      const { error: createBucketError } = await supabaseAdmin.storage.createBucket("images", {
+      const { error: createBucketError } = await getSupabaseAdmin().storage.createBucket("images", {
         public: true,
         fileSizeLimit: 5 * 1024 * 1024, // 5MB
         allowedMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"],
@@ -68,7 +61,7 @@ export async function POST(request: Request) {
     }
 
     // Upload to Supabase Storage using admin privileges
-    const { data, error: uploadError } = await supabaseAdmin.storage.from("images").upload(filePath, buffer, {
+    const { data, error: uploadError } = await getSupabaseAdmin().storage.from("images").upload(filePath, buffer, {
       contentType: file.type,
       cacheControl: "3600",
       upsert: false,
@@ -80,7 +73,7 @@ export async function POST(request: Request) {
     }
 
     // Get the public URL
-    const { data: publicUrlData } = supabaseAdmin.storage.from("images").getPublicUrl(filePath)
+    const { data: publicUrlData } = getSupabaseAdmin().storage.from("images").getPublicUrl(filePath)
 
     return NextResponse.json({
       success: true,

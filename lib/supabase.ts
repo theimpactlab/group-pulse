@@ -1,42 +1,37 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
-// Get environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+let clientInstance: SupabaseClient | null = null
 
-// Check if environment variables are properly set
-if (!supabaseUrl || supabaseUrl.includes("your_supabase_url")) {
-  console.error("Missing or invalid NEXT_PUBLIC_SUPABASE_URL environment variable")
-  throw new Error("Supabase URL not configured. Please set the NEXT_PUBLIC_SUPABASE_URL environment variable.")
-}
-
-if (!supabaseAnonKey || supabaseAnonKey.includes("your_supabase_anon_key")) {
-  console.error("Missing or invalid NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable")
-  throw new Error(
-    "Supabase Anon Key not configured. Please set the NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable.",
-  )
-}
-
-// Create a singleton Supabase client
-let supabaseInstance: ReturnType<typeof createClient> | null = null
-
-function getSupabaseClient() {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+/**
+ * Lazily create the public Supabase client.
+ * Only instantiated at request time, not at build time.
+ */
+function getSupabaseClient(): SupabaseClient {
+  if (!clientInstance) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !key) {
+      throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    }
+    clientInstance = createClient(url, key, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false, // Prevent multiple instances from URL detection
+        detectSessionInUrl: false,
       },
     })
   }
-  return supabaseInstance
+  return clientInstance
 }
 
-// Export the singleton instance
-export const supabase = getSupabaseClient()
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getSupabaseClient()
+    const value = (client as never)[prop]
+    return typeof value === "function" ? value.bind(client) : value
+  },
+})
 
-// Helper functions for sessions
 export async function fetchSessions(userId: string) {
   const { data, error } = await supabase
     .from("sessions")
@@ -76,7 +71,6 @@ export async function deleteSession(id: string) {
   return true
 }
 
-// Helper functions for responses
 export async function fetchResponses(sessionId: string) {
   const { data, error } = await supabase.from("responses").select("*").eq("session_id", sessionId)
 
@@ -91,7 +85,6 @@ export async function saveResponse(responseData: any) {
   return data[0]
 }
 
-// Helper function for image uploads
 export async function uploadImage(file: File, bucket = "images") {
   const fileExt = file.name.split(".").pop()
   const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
