@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 
-// Create a Supabase client with the service role key for admin access
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
 
 // Helper function to check if a URL is from Supabase Storage
 function isSupabaseStorageUrl(url: string): boolean {
@@ -68,7 +61,7 @@ async function cleanupSessionImages(sessionContent: any[]): Promise<void> {
         const [bucket, ...pathParts] = filePath.split("/")
         const path = pathParts.join("/")
 
-        const { error } = await supabaseAdmin.storage.from(bucket).remove([path])
+        const { error } = await getSupabaseAdmin().storage.from(bucket).remove([path])
         if (error) {
           console.error(`Error deleting image ${path}:`, error)
         } else {
@@ -120,7 +113,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     // First delete all responses associated with this session
-    const { error: responsesDeleteError } = await supabaseAdmin.from("responses").delete().eq("session_id", id)
+    const { error: responsesDeleteError } = await getSupabaseAdmin().from("responses").delete().eq("session_id", id)
 
     if (responsesDeleteError) {
       console.error("Error deleting responses:", responsesDeleteError)
@@ -128,7 +121,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     // Then delete the session
-    const { error: deleteError } = await supabaseAdmin.from("sessions").delete().eq("id", id)
+    const { error: deleteError } = await getSupabaseAdmin().from("sessions").delete().eq("id", id)
 
     if (deleteError) {
       console.error("Error deleting session:", deleteError)

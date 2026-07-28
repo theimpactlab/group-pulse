@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 
-// Create a Supabase client with the service role key for admin access
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -50,7 +43,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Delete responses for the session or specific poll
-    let deleteQuery = supabaseAdmin.from("responses").delete()
+    let deleteQuery = getSupabaseAdmin().from("responses").delete()
 
     if (pollId) {
       // Delete responses for a specific poll

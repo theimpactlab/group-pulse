@@ -1,16 +1,8 @@
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-
-// Create a Supabase client
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
 
 export default async function AnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
   // Check authentication

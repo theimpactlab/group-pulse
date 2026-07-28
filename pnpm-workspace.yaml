@@ -1,2 +1,6 @@
+allowBuilds:
+  sharp: true
 onlyBuiltDependencies:
   - sharp
+overrides:
+  nodemailer: ^8.0.11

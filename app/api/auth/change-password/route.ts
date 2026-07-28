@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase-admin"
 
-// Create a Supabase client with the service role key for admin access
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
 
 export async function POST(request: Request) {
   try {
@@ -42,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     // Verify current password
-    const { error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+    const { error: signInError } = await getSupabaseAdmin().auth.signInWithPassword({
       email: session.user.email!,
       password: currentPassword,
     })
@@ -52,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     // Update password
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(session.user.id, {
+    const { error: updateError } = await getSupabaseAdmin().auth.admin.updateUserById(session.user.id, {
       password: newPassword,
     })
 
